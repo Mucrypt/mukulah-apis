@@ -1,0 +1,9 @@
+﻿CREATE TABLE IF NOT EXISTS review_replies (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    review_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES product_reviews(id) ON DELETE CASCADE,
+    INDEX (review_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

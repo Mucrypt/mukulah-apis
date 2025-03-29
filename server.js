@@ -4,6 +4,18 @@ const cors = require('cors');
 const { testConnection } = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
 const userRoutes = require('./routes/userRoutes');
+// Import all route files
+
+const attributeRoutes = require('./routes/AttributeRoutes');
+const brandRoutes = require('./routes/BrandRoutes');
+const categoryRoutes = require('./routes/CategoryRoutes');
+const collectionRoutes = require('./routes/CollectionRoutes');
+const productRoutes = require('./routes/ProductRoutes');
+const productImageRoutes = require('./routes/ProductImageRoutes');
+const productVariationRoutes = require('./routes/ProductVariationRoutes');
+const reviewRoutes = require('./routes/ReviewRoutes');
+const tagRoutes = require('./routes/TagRoutes');
+const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes');
 
 
 // Initialize Express app
@@ -27,6 +39,19 @@ testConnection()
 
 // Routes
 app.use('/api/users', userRoutes); // User routes
+
+// Use the routes
+app.use('/api/users', userRoutes);
+app.use('/api/attributes', attributeRoutes);
+app.use('/api/brands', brandRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/collections', collectionRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/product-images', productImageRoutes);
+app.use('/api/product-variations', productVariationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/tags', tagRoutes);
+app.use('/api/product-relationships', productRelationshipRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
