@@ -31,6 +31,7 @@ const SCHEMA_FILES = {
   product_reviews: path.join(__dirname, '../database/schemas/product_reviews.sql'),
   review_replies: path.join(__dirname, '../database/schemas/review_replies.sql'),
   review_helpfulness: path.join(__dirname, '../database/schemas/review_helpfulness.sql'),
+  admin_logs: path.join(__dirname, '../database/schemas/admin_logs.sql'),
 };
 
 // Create MySQL connection pool with enhanced configuration
@@ -147,6 +148,7 @@ const initializeDatabase = async () => {
       'product_reviews',
       'review_replies',
       'review_helpfulness',
+      'admin_logs',
     ];
 
     for (const table of tablesToCreate) {

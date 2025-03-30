@@ -1,92 +1,127 @@
 const jwt = require('jsonwebtoken');
-const { promisify } = require('util');
 const User = require('../models/userModel');
 require('dotenv').config();
-
-const verifyToken = promisify(jwt.verify);
 
 const auth = {
   authenticate: async (req, res, next) => {
     try {
-      // 1. Check public routes
+      // Debugging log: Check incoming request
+      console.log(`[AUTH] Incoming request: ${req.method} ${req.path}`);
+
+      // Skip authentication for public routes
       const publicRoutes = [
-        '/api/users/register',
-        '/api/users/login',
-        '/api/users/forgot-password',
-        '/api/users/reset-password',
-        '/api/health',
+        { method: 'GET', path: /^\/api\/products(?:\/|$)/ },
+        { method: 'GET', path: /^\/api\/products\/\d+/ },
+        { method: 'PATCH', path: /^\/api\/products\/\d+\/views/ },
+        // Add other public routes...
       ];
 
-      if (publicRoutes.some((route) => req.originalUrl.includes(route))) {
-        return next();
-      }
+      const isPublic = publicRoutes.some(
+        (route) => req.method === route.method && route.path.test(req.path)
+      );
 
-      // 2. Get token
-      let token;
-      if (req.headers.authorization?.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
-      } else if (req.cookies?.jwt) {
-        token = req.cookies.jwt;
-      }
+      if (isPublic) return next();
+
+      // Token extraction with multiple sources
+      const token =
+        (req.headers.authorization?.startsWith('Bearer') &&
+          req.headers.authorization.split(' ')[1]) ||
+        req.cookies?.jwt ||
+        req.query?.token;
+
+      // Debugging log: Check extracted token
+      console.log(`[AUTH] Extracted token: ${token}`);
 
       if (!token) {
         return res.status(401).json({
           status: 'fail',
-          message: 'You are not logged in! Please log in to get access.',
+          message: 'Authentication required',
         });
       }
 
-      // 3. Verify token
-      const decoded = await verifyToken(token, process.env.JWT_SECRET);
+      // Verify token with enhanced options
+      const decoded = await new Promise((resolve, reject) => {
+        jwt.verify(
+          token,
+          process.env.JWT_SECRET,
+          {
+            algorithms: ['HS256'],
+            ignoreExpiration: false,
+          },
+          (err, decoded) => {
+            if (err) reject(err);
+            else resolve(decoded);
+          }
+        );
+      });
 
-      // 4. Check if user still exists
+      // Debugging log: Check decoded token
+      console.log(`[AUTH] Decoded token:`, decoded);
+
+      // Check user exists and is active
       const currentUser = await User.findById(decoded.id);
-      if (!currentUser) {
+      if (!currentUser || !currentUser.active) {
         return res.status(401).json({
           status: 'fail',
-          message: 'The user belonging to this token no longer exists.',
+          message: 'User account is disabled or does not exist',
         });
       }
 
-      // 5. Check if user changed password after token was issued
-      if (currentUser.changedPasswordAfter(decoded.iat)) {
+      // Debugging log: Check current user
+      console.log(`[AUTH] Current user:`, currentUser);
+
+      // Password changed check
+      if (User.changedPasswordAfter(decoded.iat, currentUser.password_changed_at)) {
         return res.status(401).json({
           status: 'fail',
-          message: 'User recently changed password! Please log in again.',
+          message: 'Password was changed. Please log in again.',
         });
       }
 
-      // 6. Attach user to request
+      // Attach user to request
       req.user = {
         id: currentUser.id,
         role: currentUser.role,
         email: currentUser.email,
+        // Add other necessary fields
       };
 
       next();
     } catch (err) {
-      return res.status(401).json({
+      // Enhanced error handling
+      console.error(`[AUTH] Error:`, err);
+
+      let message = 'Authentication failed';
+      if (err.name === 'TokenExpiredError') {
+        message = 'Session expired. Please log in again.';
+      } else if (err.name === 'JsonWebTokenError') {
+        message = 'Invalid authentication token';
+      }
+
+      res.status(401).json({
         status: 'fail',
-        message: 'Invalid token. Please log in again.',
+        message,
+        suggestion: 'Please log in to get a new token',
       });
     }
   },
 
   authorize: (...roles) => {
     return (req, res, next) => {
-      // First check if user exists
       if (!req.user) {
         return res.status(401).json({
           status: 'fail',
-          message: 'You are not logged in!',
+          message: 'Authentication required',
         });
       }
 
-      // Then check roles
       if (!roles.includes(req.user.role)) {
         return res.status(403).json({
           status: 'fail',
-          message: 'You do not have permission to perform this action',
+          message: 'Insufficient permissions',
+          requiredRoles: roles,
+          yourRole: req.user.role,
+          suggestion: 'Contact administrator for access',
         });
       }
 
@@ -94,5 +129,4 @@ const auth = {
     };
   },
 };
-
 module.exports = auth;

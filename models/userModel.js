@@ -75,9 +75,9 @@ const User = {
   },
 
   // JWT token validation helper (for auth.js)
-  changedPasswordAfter(JWTTimestamp) {
-    if (this.password_changed_at) {
-      const changedTimestamp = parseInt(new Date(this.password_changed_at).getTime() / 1000, 10);
+  changedPasswordAfter(JWTTimestamp, passwordChangedAt) {
+    if (passwordChangedAt) {
+      const changedTimestamp = parseInt(new Date(passwordChangedAt).getTime() / 1000, 10);
       return JWTTimestamp < changedTimestamp;
     }
     return false;

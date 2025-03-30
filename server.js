@@ -53,6 +53,14 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/product-relationships', productRelationshipRoutes);
 
+
+// Add this before your routes in server.js
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // Basic route
 app.get('/', (req, res) => {
   res.json({

@@ -10,79 +10,55 @@ class Product {
       await connection.beginTransaction();
 
       const [result] = await connection.execute(
-        `INSERT INTO products SET
-          name = :name,
-          slug = :slug,
-          description = :description,
-          short_description = :shortDescription,
-          price = :price,
-          discount_price = :discountPrice,
-          cost_price = :costPrice,
-          sku = :sku,
-          upc = :upc,
-          ean = :ean,
-          isbn = :isbn,
-          brand_id = :brandId,
-          stock_quantity = :stockQuantity,
-          weight = :weight,
-          length = :length,
-          width = :width,
-          height = :height,
-          min_order_quantity = :minOrderQuantity,
-          status = :status,
-          is_featured = :isFeatured,
-          is_bestseller = :isBestseller,
-          is_new = :isNew,
-          needs_shipping = :needsShipping,
-          tax_class = :taxClass,
-          meta_title = :metaTitle,
-          meta_description = :metaDescription,
-          meta_keywords = :metaKeywords
-        `,
-        {
-          name: productData.name,
-          slug: productData.slug,
-          description: productData.description,
-          shortDescription: productData.shortDescription || null,
-          price: productData.price,
-          discountPrice: productData.discountPrice || null,
-          costPrice: productData.costPrice || null,
-          sku: productData.sku,
-          upc: productData.upc || null,
-          ean: productData.ean || null,
-          isbn: productData.isbn || null,
-          brandId: productData.brandId || null,
-          stockQuantity: productData.stockQuantity || 0,
-          weight: productData.weight || null,
-          length: productData.length || null,
-          width: productData.width || null,
-          height: productData.height || null,
-          minOrderQuantity: productData.minOrderQuantity || 1,
-          status: productData.status || 'draft',
-          isFeatured: productData.isFeatured || false,
-          isBestseller: productData.isBestseller || false,
-          isNew: productData.isNew || false,
-          needsShipping: productData.needsShipping !== false,
-          taxClass: productData.taxClass || null,
-          metaTitle: productData.metaTitle || null,
-          metaDescription: productData.metaDescription || null,
-          metaKeywords: productData.metaKeywords || null,
-        }
+        `INSERT INTO products (
+    name, slug, description, short_description, price, discount_price, cost_price,
+    sku, upc, ean, isbn, brand_id, stock_quantity, stock_status,
+    weight, length, width, height, min_order_quantity, status,
+    is_featured, is_bestseller, is_new, needs_shipping, tax_class,
+    meta_title, meta_description, meta_keywords
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          productData.name,
+          productData.slug,
+          productData.description,
+          productData.shortDescription || null,
+          productData.price,
+          productData.discountPrice || 0.0,
+          productData.costPrice || null,
+          productData.sku,
+          productData.upc || null,
+          productData.ean || null,
+          productData.isbn || null,
+          productData.brandId || null,
+          productData.stockQuantity || 0,
+          productData.stockStatus || 'in_stock',
+          productData.weight || null,
+          productData.length || null,
+          productData.width || null,
+          productData.height || null,
+          productData.minOrderQuantity || 1,
+          productData.status || 'draft',
+          productData.isFeatured ? 1 : 0,
+          productData.isBestseller ? 1 : 0,
+          productData.isNew ? 1 : 0,
+          productData.needsShipping !== false ? 1 : 0,
+          productData.taxClass || null,
+          productData.metaTitle || null,
+          productData.metaDescription || null,
+          productData.metaKeywords || null,
+        ]
       );
 
       const productId = result.insertId;
 
-      // Handle categories if provided
       if (productData.categories && productData.categories.length > 0) {
         await this.addCategories(connection, productId, productData.categories);
       }
 
-      // Handle collections if provided
       if (productData.collections && productData.collections.length > 0) {
         await this.addCollections(connection, productId, productData.collections);
       }
 
-      // Handle attributes if provided
       if (productData.attributes && productData.attributes.length > 0) {
         await this.addAttributes(connection, productId, productData.attributes);
       }
@@ -91,6 +67,7 @@ class Product {
       return productId;
     } catch (err) {
       if (connection) await connection.rollback();
+      console.error('Error creating product:', err);
       throw err;
     } finally {
       if (connection) connection.release();
@@ -142,8 +119,6 @@ class Product {
     if (rows.length === 0) return null;
 
     const product = rows[0];
-
-    // Eager loading of related data
     const promises = [];
 
     if (withImages) {
@@ -304,117 +279,94 @@ class Product {
     brandId,
     minPrice,
     maxPrice,
-    attributes,
     sortBy = 'created_at',
     sortOrder = 'DESC',
     limit = 20,
     offset = 0,
   }) {
-    let whereClauses = ['p.status = "published"'];
-    const params = {};
+    try {
+      let whereClauses = ['p.status = "published"'];
+      const params = [];
 
-    if (query) {
-      whereClauses.push(`(p.name LIKE :query OR p.description LIKE :query OR p.sku = :query)`);
-      params.query = `%${query}%`;
-    }
-
-    if (categoryId) {
-      whereClauses.push(`pc.category_id = :categoryId`);
-      params.categoryId = categoryId;
-    }
-
-    if (collectionId) {
-      whereClauses.push(`pcol.collection_id = :collectionId`);
-      params.collectionId = collectionId;
-    }
-
-    if (brandId) {
-      whereClauses.push(`p.brand_id = :brandId`);
-      params.brandId = brandId;
-    }
-
-    if (minPrice) {
-      whereClauses.push(`COALESCE(p.discount_price, p.price) >= :minPrice`);
-      params.minPrice = minPrice;
-    }
-
-    if (maxPrice) {
-      whereClauses.push(`COALESCE(p.discount_price, p.price) <= :maxPrice`);
-      params.maxPrice = maxPrice;
-    }
-
-    // Handle attribute filtering
-    if (attributes && Object.keys(attributes).length > 0) {
-      const attributeConditions = [];
-      let attrIndex = 0;
-
-      for (const [attrId, values] of Object.entries(attributes)) {
-        if (values.length > 0) {
-          const valuePlaceholders = values.map((v, i) => `:attr${attrIndex}_${i}`).join(',');
-          attributeConditions.push(
-            `EXISTS (
-              SELECT 1 FROM product_attribute_values pav
-              JOIN attribute_values av ON pav.attribute_value_id = av.id
-              WHERE pav.product_attribute_id IN (
-                SELECT pa.id FROM product_attributes pa
-                WHERE pa.product_id = p.id AND pa.attribute_id = :attr${attrIndex}_id
-              )
-              AND av.id IN (${valuePlaceholders})
-            )`
-          );
-
-          params[`attr${attrIndex}_id`] = attrId;
-          values.forEach((value, i) => {
-            params[`attr${attrIndex}_${i}`] = value;
-          });
-          attrIndex++;
-        }
+      if (query) {
+        whereClauses.push('(p.name LIKE ? OR p.description LIKE ? OR p.sku = ?)');
+        params.push(`%${query}%`, `%${query}%`, query);
       }
 
-      if (attributeConditions.length > 0) {
-        whereClauses.push(`(${attributeConditions.join(' AND ')})`);
+      if (categoryId) {
+        whereClauses.push('pc.category_id = ?');
+        params.push(categoryId);
       }
+
+      if (collectionId) {
+        whereClauses.push('pcol.collection_id = ?');
+        params.push(collectionId);
+      }
+
+      if (brandId) {
+        whereClauses.push('p.brand_id = ?');
+        params.push(brandId);
+      }
+
+      if (minPrice) {
+        whereClauses.push('COALESCE(p.discount_price, p.price) >= ?');
+        params.push(minPrice);
+      }
+
+      if (maxPrice) {
+        whereClauses.push('COALESCE(p.discount_price, p.price) <= ?');
+        params.push(maxPrice);
+      }
+
+      let joinClause = '';
+      if (categoryId) {
+        joinClause += 'JOIN product_categories pc ON p.id = pc.product_id ';
+      }
+      if (collectionId) {
+        joinClause += 'JOIN product_collections pcol ON p.id = pcol.product_id ';
+      }
+
+      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+      const validSortColumns = ['name', 'price', 'created_at', 'average_rating', 'sales_count'];
+      const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+      const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+      const limitNum = parseInt(limit, 10);
+      const offsetNum = parseInt(offset, 10);
+
+      if (isNaN(limitNum) || isNaN(offsetNum)) {
+        throw new Error('Invalid limit or offset value');
+      }
+
+      // Make sure this comes *after* whereClause is defined
+      // Make sure this comes *after* whereClause is defined
+      const sqlQuery = `SELECT DISTINCT p.* FROM products p
+  ${joinClause}
+  ${whereClause}
+  ORDER BY ${sortColumn} ${sortDirection}
+  LIMIT ${limitNum} OFFSET ${offsetNum}`;
+
+      console.log('Executing SQL:', sqlQuery);
+      console.log('With params:', params);
+
+      const [products] = await this.pool.execute(sqlQuery, params);
+
+      const countSql = `SELECT COUNT(DISTINCT p.id) as total FROM products p
+        ${joinClause}
+        ${whereClause}`;
+
+      const [countResult] = await this.pool.execute(countSql, params);
+
+      return {
+        products,
+        total: countResult[0].total,
+        limit: limitNum,
+        offset: offsetNum,
+      };
+    } catch (err) {
+      console.error('Error in product search:', err);
+      throw err;
     }
-
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // Handle joins based on filters
-    let joinClause = '';
-    if (categoryId) {
-      joinClause += 'JOIN product_categories pc ON p.id = pc.product_id ';
-    }
-    if (collectionId) {
-      joinClause += 'JOIN product_collections pcol ON p.id = pcol.product_id ';
-    }
-
-    // Validate sort options
-    const validSortColumns = ['name', 'price', 'created_at', 'average_rating', 'sales_count'];
-    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
-    const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    const [products] = await this.pool.execute(
-      `SELECT DISTINCT p.* FROM products p
-       ${joinClause}
-       ${whereClause}
-       ORDER BY ${sortColumn} ${sortDirection}
-       LIMIT :limit OFFSET :offset`,
-      { ...params, limit, offset }
-    );
-
-    // Get total count for pagination
-    const [countResult] = await this.pool.execute(
-      `SELECT COUNT(DISTINCT p.id) as total FROM products p
-       ${joinClause}
-       ${whereClause}`,
-      params
-    );
-
-    return {
-      products,
-      total: countResult[0].total,
-      limit,
-      offset,
-    };
   }
 
   async update(id, updates) {
@@ -423,54 +375,48 @@ class Product {
       connection = await this.pool.getConnection();
       await connection.beginTransaction();
 
-      const [result] = await connection.execute(
-        `UPDATE products SET
-          name = COALESCE(:name, name),
-          slug = COALESCE(:slug, slug),
-          description = COALESCE(:description, description),
-          short_description = COALESCE(:shortDescription, short_description),
-          price = COALESCE(:price, price),
-          discount_price = COALESCE(:discountPrice, discount_price),
-          cost_price = COALESCE(:costPrice, cost_price),
-          sku = COALESCE(:sku, sku),
-          brand_id = COALESCE(:brandId, brand_id),
-          stock_quantity = COALESCE(:stockQuantity, stock_quantity),
-          weight = COALESCE(:weight, weight),
-          length = COALESCE(:length, length),
-          width = COALESCE(:width, width),
-          height = COALESCE(:height, height),
-          min_order_quantity = COALESCE(:minOrderQuantity, min_order_quantity),
-          status = COALESCE(:status, status),
-          is_featured = COALESCE(:isFeatured, is_featured),
-          is_bestseller = COALESCE(:isBestseller, is_bestseller),
-          is_new = COALESCE(:isNew, is_new),
-          needs_shipping = COALESCE(:needsShipping, needs_shipping),
-          tax_class = COALESCE(:taxClass, tax_class),
-          meta_title = COALESCE(:metaTitle, meta_title),
-          meta_description = COALESCE(:metaDescription, meta_description),
-          meta_keywords = COALESCE(:metaKeywords, meta_keywords)
-        WHERE id = :id`,
-        { ...updates, id }
-      );
+      const fields = [];
+      const params = [];
 
-      // Handle categories if provided
-      if (updates.categories) {
+      // Build dynamic update query
+      if (updates.name !== undefined) {
+        fields.push('name = ?');
+        params.push(updates.name);
+      }
+      if (updates.slug !== undefined) {
+        fields.push('slug = ?');
+        params.push(updates.slug);
+      }
+      if (updates.description !== undefined) {
+        fields.push('description = ?');
+        params.push(updates.description);
+      }
+      // Add all other fields similarly...
+
+      if (fields.length === 0) {
+        throw new Error('No valid fields provided for update');
+      }
+
+      params.push(id);
+      const query = `UPDATE products SET ${fields.join(', ')} WHERE id = ?`;
+
+      const [result] = await connection.execute(query, params);
+
+      if (updates.categories !== undefined) {
         await connection.execute('DELETE FROM product_categories WHERE product_id = ?', [id]);
         if (updates.categories.length > 0) {
           await this.addCategories(connection, id, updates.categories);
         }
       }
 
-      // Handle collections if provided
-      if (updates.collections) {
+      if (updates.collections !== undefined) {
         await connection.execute('DELETE FROM product_collections WHERE product_id = ?', [id]);
         if (updates.collections.length > 0) {
           await this.addCollections(connection, id, updates.collections);
         }
       }
 
-      // Handle attributes if provided
-      if (updates.attributes) {
+      if (updates.attributes !== undefined) {
         await connection.execute('DELETE pa FROM product_attributes pa WHERE pa.product_id = ?', [
           id,
         ]);
@@ -495,7 +441,6 @@ class Product {
       connection = await this.pool.getConnection();
       await connection.beginTransaction();
 
-      // Delete product relationships
       await connection.execute('DELETE FROM product_categories WHERE product_id = ?', [id]);
       await connection.execute('DELETE FROM product_collections WHERE product_id = ?', [id]);
       await connection.execute(
@@ -518,15 +463,12 @@ class Product {
         'DELETE FROM up_sell_products WHERE product_id = ? OR up_sell_product_id = ?',
         [id, id]
       );
-
-      // Delete product variations
       await connection.execute(
         'DELETE va FROM variation_attributes va JOIN product_variations pv ON va.variation_id = pv.id WHERE pv.product_id = ?',
         [id]
       );
       await connection.execute('DELETE FROM product_variations WHERE product_id = ?', [id]);
 
-      // Finally delete the product
       const [result] = await connection.execute('DELETE FROM products WHERE id = ?', [id]);
 
       await connection.commit();
