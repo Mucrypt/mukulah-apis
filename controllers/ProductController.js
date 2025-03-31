@@ -2,6 +2,8 @@ const Product = require('../models/ProductModel');
 const { pool } = require('../config/db');
 const AppError = require('../utils/appError');
 const { withTransaction } = require('../utils/dbUtils'); // Import withTransaction
+const crypto = require('crypto'); // Import crypto for generating random suffixes
+const cacheService = require('../services/cacheService'); // Ensure cacheService is imported
 
 const productController = {
   // Create a new product
@@ -14,24 +16,76 @@ const productController = {
         return next(new AppError(`Missing required fields: ${missingFields.join(', ')}`, 400));
       }
 
+      if (req.body.attributes) {
+        // Normalize attributes to match the expected format
+        req.body.attributes = req.body.attributes.map((attribute) => ({
+          attributeId: attribute.attribute_id, // Correctly map attribute_id to attributeId
+          valueIds: attribute.values, // Correctly map values to valueIds
+        }));
+
+        // Validate attributes
+        if (!Array.isArray(req.body.attributes)) {
+          return next(new AppError('Attributes must be an array', 400));
+        }
+
+        for (const attribute of req.body.attributes) {
+          if (
+            !attribute.attributeId ||
+            !Array.isArray(attribute.valueIds) ||
+            attribute.valueIds.length === 0
+          ) {
+            return next(
+              new AppError(
+                'Each attribute must have an attributeId and a non-empty array of valueIds',
+                400
+              )
+            );
+          }
+        }
+      }
+
       const product = new Product(pool);
-      const productId = await withTransaction(async (connection) => {
-        // Add created_by to product data
-        const productData = {
+
+      let productId;
+      await withTransaction(async (connection) => {
+        let productData = {
           ...req.body,
           created_by: req.user.id,
           updated_by: req.user.id,
         };
 
-        const productId = await product.create(productData, connection);
+        // Attempt to create the product
+        while (true) {
+          try {
+            productId = await product.create(productData, connection);
+            break; // Exit loop if creation is successful
+          } catch (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+              if (err.message.includes('slug')) {
+                // Append a random suffix to the slug
+                const randomSuffix = crypto.randomBytes(3).toString('hex'); // Generate a 6-character random string
+                productData.slug = `${req.body.slug}-${randomSuffix}`;
+              } else if (err.message.includes('sku')) {
+                // Append a random suffix to the sku
+                const randomSuffix = crypto.randomBytes(3).toString('hex'); // Generate a 6-character random string
+                productData.sku = `${req.body.sku}-${randomSuffix}`;
+              } else {
+                throw err; // Re-throw other errors
+              }
+            } else {
+              throw err; // Re-throw other errors
+            }
+          }
+        }
 
-        // Log the product creation
-        await connection.execute(
-          'INSERT INTO admin_logs (user_id, action, details) VALUES (?, ?, ?)',
-          [req.user.id, 'product_create', `Created product ${productId}`]
-        );
+        // Handle attributes if provided
+        if (req.body.attributes && req.body.attributes.length > 0) {
+          await product.addAttributes(productId, req.body.attributes, connection);
+        }
 
-        return productId;
+        if (req.body.variations) {
+          // Handle variations
+        }
       });
 
       res.status(201).json({
@@ -39,10 +93,7 @@ const productController = {
         data: { productId },
       });
     } catch (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return next(new AppError('Product with this SKU or slug already exists', 400));
-      }
-      console.error('Product creation error:', err);
+      console.error('Error creating product:', err);
       next(new AppError('Failed to create product', 500));
     }
   },
@@ -94,27 +145,32 @@ const productController = {
   // Get a single product
   getProduct: async (req, res, next) => {
     try {
-      const {
-        withImages,
-        withCategories,
-        withCollections,
-        withAttributes,
-        withVariations,
-        withReviews,
-      } = req.query;
+      const { withImages = 'true', withBrand = 'true', withAttributes = 'true' } = req.query;
 
       const product = new Product(pool);
       const productData = await product.findById(parseInt(req.params.id), {
         withImages: withImages === 'true',
-        withCategories: withCategories === 'true',
-        withCollections: withCollections === 'true',
-        withAttributes: withAttributes === 'true',
-        withVariations: withVariations === 'true',
-        withReviews: withReviews === 'true',
       });
 
       if (!productData) {
         return next(new AppError('No product found with that ID', 404));
+      }
+
+      // Fetch brand details if requested
+      if (withBrand === 'true' && productData.brand_id) {
+        const brandModel = new (require('../models/BrandModel'))(pool);
+        productData.brand = await brandModel.findById(productData.brand_id);
+      }
+
+      // Fetch attributes if requested
+      if (withAttributes === 'true') {
+        const productAttributeModel = new (require('../models/ProductAttributeModel'))(pool);
+        productData.attributes = await productAttributeModel.getAttributesByProductId(
+          productData.id
+        );
+
+        // Debugging log to verify attributes
+        console.log('Fetched Attributes:', productData.attributes);
       }
 
       res.status(200).json({
@@ -128,19 +184,193 @@ const productController = {
       next(new AppError('Failed to retrieve product', 500));
     }
   },
+  // Get a single product with all Details and Relationships
+  // controllers/ProductController.js
+  // This function retrieves a product by its ID and includes all related data such as images, categories, collections, attributes, variations, reviews, and brand.
+  getCompleteProductDetails: async (req, res, next) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      if (isNaN(productId)) {
+        console.error('Invalid product ID provided.');
+        return next(new AppError('Invalid product ID', 400));
+      }
 
+      console.log(`Fetching complete details for product ID: ${productId}`);
+
+      // Attempt to retrieve cached data
+      const cacheKey = `product:${productId}:completeDetails`;
+      const cachedData = await cacheService.get(cacheKey);
+      if (cachedData) {
+        console.log('Serving data from cache');
+        return res.status(200).json(cachedData);
+      }
+
+      // Pagination parameters
+      const relatedLimit = parseInt(req.query.relatedLimit) || 5;
+      const relatedOffset = parseInt(req.query.relatedOffset) || 0;
+      const crossSellLimit = parseInt(req.query.crossSellLimit) || 5;
+      const crossSellOffset = parseInt(req.query.crossSellOffset) || 0;
+      const upSellLimit = parseInt(req.query.upSellLimit) || 5;
+      const upSellOffset = parseInt(req.query.upSellOffset) || 0;
+
+      const product = new Product(pool);
+      const relationshipModel = new (require('../models/ProductRelationshipModel'))(pool);
+
+      const [
+        productData,
+        relatedProducts,
+        relatedCount,
+        crossSellProducts,
+        crossSellCount,
+        upSellProducts,
+        upSellCount,
+      ] = await Promise.all([
+        product.findById(productId, {
+          withImages: true,
+          withCategories: true,
+          withCollections: true,
+          withAttributes: true,
+          withVariations: true,
+          withReviews: true,
+          withBrand: true,
+        }),
+        relationshipModel.getRelatedProducts(productId, {
+          limit: relatedLimit,
+          offset: relatedOffset,
+        }),
+        relationshipModel.getRelatedProductsCount(productId),
+        relationshipModel.getCrossSellProducts(productId, {
+          limit: crossSellLimit,
+          offset: crossSellOffset,
+        }),
+        relationshipModel.getCrossSellProductsCount(productId),
+        relationshipModel.getUpSellProducts(productId, {
+          limit: upSellLimit,
+          offset: upSellOffset,
+        }),
+        relationshipModel.getUpSellProductsCount(productId),
+      ]);
+
+      if (!productData) {
+        console.error(`No product found with ID: ${productId}`);
+        return next(new AppError('Product not found', 404));
+      }
+
+      const response = {
+        status: 'success',
+        data: {
+          product: {
+            ...productData,
+            relationships: {
+              related: {
+                products: relatedProducts,
+                meta: {
+                  total: relatedCount,
+                  limit: relatedLimit,
+                  offset: relatedOffset,
+                  pages: Math.ceil(relatedCount / relatedLimit),
+                },
+              },
+              crossSell: {
+                products: crossSellProducts,
+                meta: {
+                  total: crossSellCount,
+                  limit: crossSellLimit,
+                  offset: crossSellOffset,
+                  pages: Math.ceil(crossSellCount / crossSellLimit),
+                },
+              },
+              upSell: {
+                products: upSellProducts,
+                meta: {
+                  total: upSellCount,
+                  limit: upSellLimit,
+                  offset: upSellOffset,
+                  pages: Math.ceil(upSellCount / upSellLimit),
+                },
+              },
+            },
+          },
+        },
+      };
+
+      // Cache the response
+      await cacheService.set(cacheKey, response);
+
+      res.status(200).json(response);
+    } catch (err) {
+      console.error('Error retrieving complete product details:', err.message);
+      next(new AppError('Failed to retrieve product details', 500));
+    }
+  },
   // Update a product
   updateProduct: async (req, res, next) => {
     try {
       if (Object.keys(req.body).length === 0) {
-        return next(new AppError('No update data provided', 400));
+        return next(
+          new AppError('No update data provided. Please provide valid fields to update.', 400)
+        );
+      }
+
+      const validFields = [
+        'name',
+        'slug',
+        'description',
+        'short_description',
+        'price',
+        'discount_price',
+        'cost_price',
+        'sku',
+        'upc',
+        'ean',
+        'isbn',
+        'brand_id',
+        'stock_quantity',
+        'stock_status',
+        'weight',
+        'length',
+        'width',
+        'height',
+        'min_order_quantity',
+        'status',
+        'is_featured',
+        'is_bestseller',
+        'is_new',
+        'needs_shipping',
+        'tax_class',
+        'views_count',
+        'sales_count',
+        'wishlist_count',
+        'rating_total',
+        'rating_count',
+        'average_rating',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'created_at',
+        'updated_at',
+        'categories',
+        'collections',
+        'attributes',
+      ];
+
+      const updates = {};
+
+      for (const field of validFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return next(new AppError('No valid fields provided for update.', 400));
       }
 
       const product = new Product(pool);
-      const updatedRows = await product.update(parseInt(req.params.id), req.body);
+      const updatedRows = await product.update(parseInt(req.params.id), updates);
 
       if (updatedRows === 0) {
-        return next(new AppError('No product found with that ID', 404));
+        return next(new AppError('No product found with that ID.', 404));
       }
 
       res.status(200).json({
@@ -166,9 +396,9 @@ const productController = {
         return next(new AppError('No product found with that ID', 404));
       }
 
-      res.status(204).json({
+      res.status(200).json({
         status: 'success',
-        data: null,
+        message: 'Product deleted successfully',
       });
     } catch (err) {
       console.error('Error deleting product:', err);
@@ -195,33 +425,44 @@ const productController = {
   // Get related products
   getRelatedProducts: async (req, res, next) => {
     try {
-      const limit = parseInt(req.query.limit) || 5;
-      const productRelationship = new (require('../models/ProductRelationshipModel'))(pool);
-      const products = await productRelationship.getRelatedProducts(parseInt(req.params.id), {
-        limit,
-      });
+      const productId = req.params.id;
+      const limit = req.query.limit || 5;
+
+      const relationshipModel = new (require('../models/ProductRelationshipModel'))(pool);
+      const relatedProducts = await relationshipModel.getRelatedProducts(productId, { limit });
 
       res.status(200).json({
         status: 'success',
-        results: products.length,
-        data: {
-          products,
-        },
+        results: relatedProducts.length,
+        data: { products: relatedProducts },
       });
-    } catch (err) {
-      console.error('Error getting related products:', err);
-      next(new AppError('Failed to get related products', 500));
+    } catch (error) {
+      if (error.message.includes('No related products found')) {
+        return res.status(404).json({
+          status: 'fail',
+          message: error.message,
+        });
+      }
+      next(new AppError('Failed to fetch related products', 500));
     }
   },
 
   // Get cross-sell products
   getCrossSellProducts: async (req, res, next) => {
     try {
-      const limit = parseInt(req.query.limit) || 5;
+      const productId = parseInt(req.params.id, 10); // Ensure productId is an integer
+      const limit = parseInt(req.query.limit) || 5; // Ensure limit is an integer
+
+      if (isNaN(productId)) {
+        return next(new AppError('Invalid product ID: must be a number', 400));
+      }
+
+      if (isNaN(limit) || limit <= 0) {
+        return next(new AppError('Invalid limit: must be a positive number', 400));
+      }
+
       const productRelationship = new (require('../models/ProductRelationshipModel'))(pool);
-      const products = await productRelationship.getCrossSellProducts(parseInt(req.params.id), {
-        limit,
-      });
+      const products = await productRelationship.getCrossSellProducts(productId, { limit });
 
       res.status(200).json({
         status: 'success',
@@ -239,11 +480,19 @@ const productController = {
   // Get up-sell products
   getUpSellProducts: async (req, res, next) => {
     try {
-      const limit = parseInt(req.query.limit) || 5;
+      const productId = parseInt(req.params.id, 10); // Ensure productId is an integer
+      const limit = parseInt(req.query.limit) || 5; // Ensure limit is an integer
+
+      if (isNaN(productId)) {
+        return next(new AppError('Invalid product ID: must be a number', 400));
+      }
+
+      if (isNaN(limit) || limit <= 0) {
+        return next(new AppError('Invalid limit: must be a positive number', 400));
+      }
+
       const productRelationship = new (require('../models/ProductRelationshipModel'))(pool);
-      const products = await productRelationship.getUpSellProducts(parseInt(req.params.id), {
-        limit,
-      });
+      const products = await productRelationship.getUpSellProducts(productId, { limit });
 
       res.status(200).json({
         status: 'success',

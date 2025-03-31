@@ -1,177 +1,64 @@
 class ProductVariation {
   constructor(pool) {
     this.pool = pool;
+    this.attributeModel = new (require('./AttributeModel'))(pool);
+    this.attributeValueModel = new (require('./AttributeValueModel'))(pool);
   }
 
-  async create({
-    productId,
-    sku = null,
-    price = null,
-    discountPrice = null,
-    stockQuantity = 0,
-    imageId = null,
-    isDefault = false,
-    attributes = [],
-  }) {
-    let connection;
-    try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
+  async create({ productId, sku, price, stockQuantity, attributes }) {
+    const [result] = await this.pool.execute(
+      `INSERT INTO product_variations (product_id, sku, price, stock_quantity) VALUES (?, ?, ?, ?)`,
+      [productId, sku, price, stockQuantity]
+    );
+    const variationId = result.insertId;
 
-      // If setting as default, unset any existing default variation
-      if (isDefault) {
-        await connection.execute(
-          'UPDATE product_variations SET is_default = FALSE WHERE product_id = ?',
-          [productId]
-        );
-      }
-
-      const [result] = await connection.execute(
-        `INSERT INTO product_variations SET
-          product_id = :productId,
-          sku = :sku,
-          price = :price,
-          discount_price = :discountPrice,
-          stock_quantity = :stockQuantity,
-          image_id = :imageId,
-          is_default = :isDefault
-        `,
-        { productId, sku, price, discountPrice, stockQuantity, imageId, isDefault }
-      );
-
-      const variationId = result.insertId;
-
-      // Add attributes if provided
-      if (attributes.length > 0) {
-        const values = attributes.map((attr) => [variationId, attr.attributeId, attr.valueId]);
-        await connection.query(
-          'INSERT INTO variation_attributes (variation_id, attribute_id, attribute_value_id) VALUES ?',
-          [values]
-        );
-      }
-
-      await connection.commit();
-      return variationId;
-    } catch (err) {
-      if (connection) await connection.rollback();
-      throw err;
-    } finally {
-      if (connection) connection.release();
-    }
-  }
-
-  async setAsDefault(variationId, productId) {
-    let connection;
-    try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
-
-      // Unset any existing default variation
-      await connection.execute(
-        'UPDATE product_variations SET is_default = FALSE WHERE product_id = ?',
-        [productId]
-      );
-
-      // Set the new default variation
-      const [result] = await connection.execute(
-        'UPDATE product_variations SET is_default = TRUE WHERE id = ? AND product_id = ?',
-        [variationId, productId]
-      );
-
-      await connection.commit();
-      return result.affectedRows;
-    } catch (err) {
-      if (connection) await connection.rollback();
-      throw err;
-    } finally {
-      if (connection) connection.release();
-    }
-  }
-
-  async update(variationId, updates) {
-    let connection;
-    try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
-
-      // If setting as default, unset any existing default variation
-      if (updates.isDefault) {
-        await connection.execute(
-          'UPDATE product_variations SET is_default = FALSE WHERE product_id = (SELECT product_id FROM product_variations WHERE id = ?)',
-          [variationId]
-        );
-      }
-
-      const [result] = await connection.execute(
-        `UPDATE product_variations SET
-          sku = COALESCE(:sku, sku),
-          price = COALESCE(:price, price),
-          discount_price = COALESCE(:discountPrice, discount_price),
-          stock_quantity = COALESCE(:stockQuantity, stock_quantity),
-          image_id = COALESCE(:imageId, image_id),
-          is_default = COALESCE(:isDefault, is_default)
-        WHERE id = :variationId`,
-        { ...updates, variationId }
-      );
-
-      // Update attributes if provided
-      if (updates.attributes) {
-        await connection.execute('DELETE FROM variation_attributes WHERE variation_id = ?', [
-          variationId,
-        ]);
-
-        if (updates.attributes.length > 0) {
-          const values = updates.attributes.map((attr) => [
-            variationId,
-            attr.attributeId,
-            attr.valueId,
-          ]);
-          await connection.query(
-            'INSERT INTO variation_attributes (variation_id, attribute_id, attribute_value_id) VALUES ?',
-            [values]
-          );
+    // Insert variation attributes
+    if (attributes && attributes.length > 0) {
+      for (const { attributeId, valueId } of attributes) {
+        if (!attributeId) {
+          throw new Error(`Missing attributeId: attributeId=${attributeId}`);
         }
-      }
+        if (!valueId) {
+          throw new Error(`Missing valueId: valueId=${valueId}`);
+        }
 
-      await connection.commit();
-      return result.affectedRows;
-    } catch (err) {
-      if (connection) await connection.rollback();
-      throw err;
-    } finally {
-      if (connection) connection.release();
+        // Find the attribute value
+        const attribute = await this.attributeModel.findById(attributeId);
+        if (!attribute) {
+          throw new Error(`Attribute not found: ${attributeId}`);
+        }
+
+        const attributeValues = await this.attributeValueModel.findByAttribute(attributeId);
+        const attributeValue = attributeValues.find((av) => av.slug === valueId);
+
+        if (!attributeValue) {
+          throw new Error(`Attribute value not found for attribute ${attributeId}: ${valueId}`);
+        }
+
+        await this.pool.execute(
+          `INSERT INTO variation_attributes (variation_id, attribute_id, value_id, attribute_value_id) VALUES (?, ?, ?, ?)`,
+          [variationId, attributeId, valueId, attributeValue.id]
+        );
+      }
     }
+
+    return variationId;
+  }
+  async findByProductId(productId) {
+    const [rows] = await this.pool.execute(
+      `SELECT * FROM product_variations WHERE product_id = ?`,
+      [productId]
+    );
+    return rows;
   }
 
   async delete(variationId) {
-    let connection;
-    try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
-
-      await connection.execute('DELETE FROM variation_attributes WHERE variation_id = ?', [
-        variationId,
-      ]);
-
-      const [result] = await connection.execute('DELETE FROM product_variations WHERE id = ?', [
-        variationId,
-      ]);
-
-      await connection.commit();
-      return result.affectedRows;
-    } catch (err) {
-      if (connection) await connection.rollback();
-      throw err;
-    } finally {
-      if (connection) connection.release();
-    }
-  }
-
-  async updateStock(variationId, quantity) {
-    const [result] = await this.pool.execute(
-      'UPDATE product_variations SET stock_quantity = ? WHERE id = ?',
-      [quantity, variationId]
-    );
+    await this.pool.execute(`DELETE FROM variation_attributes WHERE variation_id = ?`, [
+      variationId,
+    ]);
+    const [result] = await this.pool.execute(`DELETE FROM product_variations WHERE id = ?`, [
+      variationId,
+    ]);
     return result.affectedRows;
   }
 }

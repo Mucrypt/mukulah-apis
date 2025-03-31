@@ -60,7 +60,7 @@ class Product {
       }
 
       if (productData.attributes && productData.attributes.length > 0) {
-        await this.addAttributes(connection, productId, productData.attributes);
+        await this.addAttributes(productId, productData.attributes, connection);
       }
 
       await connection.commit();
@@ -88,18 +88,31 @@ class Product {
     ]);
   }
 
-  async addAttributes(connection, productId, attributes) {
-    for (const attr of attributes) {
-      const [attrResult] = await connection.execute(
+  async addAttributes(productId, attributes, connection) {
+    if (!Array.isArray(attributes)) {
+      throw new Error('Attributes must be an array');
+    }
+
+    for (const attribute of attributes) {
+      const { attributeId, valueIds } = attribute;
+
+      if (!attributeId || !Array.isArray(valueIds) || valueIds.length === 0) {
+        throw new Error(
+          'Invalid attribute format: Each attribute must have an attributeId and a non-empty array of valueIds'
+        );
+      }
+
+      const [result] = await connection.execute(
         'INSERT INTO product_attributes (product_id, attribute_id) VALUES (?, ?)',
-        [productId, attr.attributeId]
+        [productId, attributeId]
       );
 
-      const attributeValues = attr.values.map((valId) => [attrResult.insertId, valId]);
-      if (attributeValues.length > 0) {
-        await connection.query(
-          'INSERT INTO product_attribute_values (product_attribute_id, attribute_value_id) VALUES ?',
-          [attributeValues]
+      const productAttributeId = result.insertId;
+
+      for (const valueId of valueIds) {
+        await connection.execute(
+          'INSERT INTO product_attribute_values (product_attribute_id, attribute_value_id) VALUES (?, ?)',
+          [productAttributeId, valueId]
         );
       }
     }
@@ -120,6 +133,15 @@ class Product {
 
     const product = rows[0];
     const promises = [];
+
+    if (options.withBrand && product.brand_id) {
+      const brandModel = new (require('./BrandModel'))(this.pool);
+      promises.push(
+        brandModel.findById(product.brand_id).then((brand) => {
+          product.brand = brand;
+        })
+      );
+    }
 
     if (withImages) {
       promises.push(
@@ -204,18 +226,18 @@ class Product {
   async getProductAttributes(productId) {
     const [rows] = await this.pool.execute(
       `SELECT 
-        a.id, a.name, a.slug, a.type,
-        GROUP_CONCAT(av.id) AS value_ids,
-        GROUP_CONCAT(av.value) AS values,
-        GROUP_CONCAT(av.slug) AS value_slugs,
-        GROUP_CONCAT(av.color_code) AS color_codes,
-        GROUP_CONCAT(av.image_url) AS image_urls
-      FROM product_attributes pa
-      JOIN attributes a ON pa.attribute_id = a.id
-      JOIN product_attribute_values pav ON pa.id = pav.product_attribute_id
-      JOIN attribute_values av ON pav.attribute_value_id = av.id
-      WHERE pa.product_id = ?
-      GROUP BY a.id`,
+      a.id, a.name, a.slug, a.type,
+      GROUP_CONCAT(av.id) AS value_ids,
+      GROUP_CONCAT(av.value) AS attribute_values,
+      GROUP_CONCAT(av.slug) AS value_slugs,
+      GROUP_CONCAT(av.color_code) AS color_codes,
+      GROUP_CONCAT(av.image_url) AS image_urls
+    FROM product_attributes pa
+    JOIN attributes a ON pa.attribute_id = a.id
+    JOIN product_attribute_values pav ON pa.id = pav.product_attribute_id
+    JOIN attribute_values av ON pav.attribute_value_id = av.id
+    WHERE pa.product_id = ?
+    GROUP BY a.id`,
       [productId]
     );
 
@@ -226,7 +248,7 @@ class Product {
       type: row.type,
       values: row.value_ids.split(',').map((id, index) => ({
         id: parseInt(id),
-        value: row.values.split(',')[index],
+        value: row.attribute_values.split(',')[index],
         slug: row.value_slugs.split(',')[index],
         colorCode: row.color_codes?.split(',')[index] || null,
         imageUrl: row.image_urls?.split(',')[index] || null,
@@ -378,23 +400,57 @@ class Product {
       const fields = [];
       const params = [];
 
-      // Build dynamic update query
-      if (updates.name !== undefined) {
-        fields.push('name = ?');
-        params.push(updates.name);
+      // Dynamically build the update query for all fields
+      const updatableFields = [
+        'name',
+        'slug',
+        'description',
+        'short_description',
+        'price',
+        'discount_price',
+        'cost_price',
+        'sku',
+        'upc',
+        'ean',
+        'isbn',
+        'brand_id',
+        'stock_quantity',
+        'stock_status',
+        'weight',
+        'length',
+        'width',
+        'height',
+        'min_order_quantity',
+        'status',
+        'is_featured',
+        'is_bestseller',
+        'is_new',
+        'needs_shipping',
+        'tax_class',
+        'views_count',
+        'sales_count',
+        'wishlist_count',
+        'rating_total',
+        'rating_count',
+        'average_rating',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'created_at',
+        'updated_at',
+      ];
+
+      for (const field of updatableFields) {
+        if (updates[field] !== undefined) {
+          fields.push(`${field} = ?`);
+          params.push(updates[field]);
+        }
       }
-      if (updates.slug !== undefined) {
-        fields.push('slug = ?');
-        params.push(updates.slug);
-      }
-      if (updates.description !== undefined) {
-        fields.push('description = ?');
-        params.push(updates.description);
-      }
-      // Add all other fields similarly...
 
       if (fields.length === 0) {
-        throw new Error('No valid fields provided for update');
+        throw new Error(
+          'No valid fields provided for update. Ensure you are passing valid fields.'
+        );
       }
 
       params.push(id);
@@ -421,7 +477,7 @@ class Product {
           id,
         ]);
         if (updates.attributes.length > 0) {
-          await this.addAttributes(connection, id, updates.attributes);
+          await this.addAttributes(id, updates.attributes, connection);
         }
       }
 

@@ -218,6 +218,37 @@ class Product {
   async delete(id) {
     /* ... */
   }
+
+  async addCategories(connection, productId, categories) {
+    const values = categories.map((catId) => [productId, catId]);
+    await connection.query('INSERT INTO product_categories (product_id, category_id) VALUES ?', [
+      values,
+    ]);
+  }
+
+  async addCollections(connection, productId, collections) {
+    const values = collections.map((colId) => [productId, colId]);
+    await connection.query('INSERT INTO product_collections (product_id, collection_id) VALUES ?', [
+      values,
+    ]);
+  }
+
+  async addAttributes(connection, productId, attributes) {
+    for (const attr of attributes) {
+      const [attrResult] = await connection.execute(
+        'INSERT INTO product_attributes (product_id, attribute_id) VALUES (?, ?)',
+        [productId, attr.attributeId]
+      );
+
+      const attributeValues = attr.values.map((valId) => [attrResult.insertId, valId]);
+      if (attributeValues.length > 0) {
+        await connection.query(
+          'INSERT INTO product_attribute_values (product_attribute_id, attribute_value_id) VALUES ?',
+          [attributeValues]
+        );
+      }
+    }
+  }
 }
 
 module.exports = Product;

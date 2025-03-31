@@ -9,17 +9,29 @@ const productRelationshipController = {
       const productRelationship = new (require('../models/ProductRelationshipModel'))(pool);
 
       const addedCount = await productRelationship.addRelatedProducts(
-        req.params.productId,
+        parseInt(req.params.productId, 10), // Ensure productId is an integer
         productIds
+      );
+
+      // Ensure the limit is valid and matches the number of product IDs
+      const limit =
+        Number.isInteger(productIds.length) && productIds.length > 0 ? productIds.length : 5;
+
+      // Fetch the details of the related products
+      const relatedProducts = await productRelationship.getRelatedProducts(
+        parseInt(req.params.productId, 10), // Ensure productId is an integer
+        { limit }
       );
 
       res.status(200).json({
         status: 'success',
         data: {
           addedCount,
+          relatedProducts, // Include the related product details in the response
         },
       });
     } catch (err) {
+      console.error('Error adding related products:', err);
       next(err);
     }
   },

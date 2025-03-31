@@ -10,6 +10,11 @@ router.get('/:id/related', productController.getRelatedProducts);
 router.get('/:id/cross-sell', productController.getCrossSellProducts);
 router.get('/:id/up-sell', productController.getUpSellProducts);
 router.patch('/:id/views', productController.incrementProductViews);
+// In ProductRoutes.js
+router.get(
+  '/:id/complete',
+  productController.getCompleteProductDetails
+);
 
 // Protected admin routes
 router.post(

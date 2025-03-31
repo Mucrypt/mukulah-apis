@@ -78,6 +78,14 @@ class ProductImage {
     const [result] = await this.pool.execute('DELETE FROM product_images WHERE id = ?', [imageId]);
     return result.affectedRows;
   }
+
+  async findByProductId(productId) {
+    const [rows] = await this.pool.execute(
+      'SELECT * FROM product_images WHERE product_id = ? ORDER BY position ASC',
+      [productId]
+    );
+    return rows;
+  }
 }
 
 module.exports = ProductImage;

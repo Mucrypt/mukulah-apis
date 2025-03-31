@@ -1,0 +1,11 @@
+# Ensure all text files use LF in the repository
+* text=auto
+
+# Explicitly set line endings for specific file types
+*.js text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+
+

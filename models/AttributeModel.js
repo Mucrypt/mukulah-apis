@@ -1,3 +1,4 @@
+//backend/models/AttributeModel.js
 class Attribute {
   constructor(pool) {
     this.pool = pool;
