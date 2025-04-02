@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const { testConnection } = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
-const userRoutes = require('./routes/userRoutes');
-// Import all route files
 
+// Import all route files
+const userRoutes = require('./routes/userRoutes');
 const attributeRoutes = require('./routes/AttributeRoutes');
 const brandRoutes = require('./routes/BrandRoutes');
 const categoryRoutes = require('./routes/CategoryRoutes');
@@ -14,22 +17,39 @@ const productImageRoutes = require('./routes/ProductImageRoutes');
 const productVariationRoutes = require('./routes/ProductVariationRoutes');
 const reviewRoutes = require('./routes/ReviewRoutes');
 const tagRoutes = require('./routes/TagRoutes');
-const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes'); // Import the routes
+const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes');
 
 // Initialize Express app
 const app = express();
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security middleware
+app.use(helmet());
 
-// Log all incoming requests for debugging
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  next();
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000,
+  message: 'Too many requests from this IP, please try again after 15 minutes',
 });
+app.use('/api/', apiLimiter);
+
+// Enable CORS
+app.use(cors());
+
+// Body parsers
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Compression
+app.use(compression());
+
+// Request logging
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // Database connection
 testConnection()
@@ -41,51 +61,63 @@ testConnection()
     process.exit(1);
   });
 
-// Routes
-app.use('/api/users', userRoutes); // User routes
-
-// Use the routes
+// API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/attributes', attributeRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/products', productRelationshipRoutes); // Mount the product relationship routes
 app.use('/api/product-images', productImageRoutes);
 app.use('/api/product-variations', productVariationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/product-relationships', productRelationshipRoutes);
 
-// Basic route
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     status: 'success',
     message: 'E-commerce API is running',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
-// Handle 404 errors for undefined routes
-app.use((req, res, next) => {
+// 404 handler
+app.use((req, res) => {
   res.status(404).json({
     status: 'fail',
     message: `Cannot ${req.method} ${req.path}`,
   });
 });
 
-// Error handling middleware
+// Error handler
 app.use(errorHandler);
 
-// Start server
+// Server setup
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled rejections
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);
-  process.exit(1);
+  server.close(() => process.exit(1));
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  server.close(() => process.exit(1));
 });

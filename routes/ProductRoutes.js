@@ -31,6 +31,16 @@ router.patch(
   productController.updateProduct
 );
 
+// Protected admin routes for updating products
+// This route is for updating product details
+
+router.put(
+  '/:id',
+  auth.authenticate,
+  auth.authorize('admin', 'superAdmin'),
+  productController.updateProduct
+);
+
 router.delete(
   '/:id',
   auth.authenticate,

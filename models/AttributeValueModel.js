@@ -25,6 +25,13 @@ class AttributeValue {
     return rows;
   }
 
+  async findById(valueId) {
+    const [rows] = await this.pool.execute(`SELECT * FROM attribute_values WHERE id = ?`, [
+      valueId,
+    ]);
+    return rows[0] || null;
+  }
+
   async update(id, updates) {
     const [result] = await this.pool.execute(
       `UPDATE attribute_values SET

@@ -7,6 +7,7 @@ const cacheService = require('../services/cacheService'); // Ensure cacheService
 
 const productController = {
   // Create a new product
+  // Create a new product with variations
   createProduct: async (req, res, next) => {
     try {
       const requiredFields = ['name', 'slug', 'description', 'price', 'sku'];
@@ -16,35 +17,47 @@ const productController = {
         return next(new AppError(`Missing required fields: ${missingFields.join(', ')}`, 400));
       }
 
+      // Validate attributes if provided
       if (req.body.attributes) {
-        // Normalize attributes to match the expected format
         req.body.attributes = req.body.attributes.map((attribute) => ({
-          attributeId: attribute.attribute_id, // Correctly map attribute_id to attributeId
-          valueIds: attribute.values, // Correctly map values to valueIds
+          attributeId: attribute.attribute_id || attribute.attributeId,
+          valueIds: attribute.values || attribute.valueIds,
         }));
 
-        // Validate attributes
         if (!Array.isArray(req.body.attributes)) {
           return next(new AppError('Attributes must be an array', 400));
         }
 
         for (const attribute of req.body.attributes) {
-          if (
-            !attribute.attributeId ||
-            !Array.isArray(attribute.valueIds) ||
-            attribute.valueIds.length === 0
-          ) {
+          if (!attribute.attributeId || !Array.isArray(attribute.valueIds)) {
             return next(
-              new AppError(
-                'Each attribute must have an attributeId and a non-empty array of valueIds',
-                400
-              )
+              new AppError('Each attribute must have an attributeId and array of valueIds', 400)
             );
           }
         }
       }
 
+      // Validate variations if provided
+      if (req.body.variations) {
+        if (!Array.isArray(req.body.variations)) {
+          return next(new AppError('Variations must be an array', 400));
+        }
+
+        for (const variation of req.body.variations) {
+          if (!variation.sku || !variation.price || !variation.stockQuantity) {
+            return next(
+              new AppError('Each variation must have sku, price, and stockQuantity', 400)
+            );
+          }
+
+          if (variation.attributes && !Array.isArray(variation.attributes)) {
+            return next(new AppError('Variation attributes must be an array', 400));
+          }
+        }
+      }
+
       const product = new Product(pool);
+      const variationModel = new (require('../models/ProductVariationModel'))(pool);
 
       let productId;
       await withTransaction(async (connection) => {
@@ -54,43 +67,59 @@ const productController = {
           updated_by: req.user.id,
         };
 
-        // Attempt to create the product
+        // Handle duplicate slugs/SKUs
         while (true) {
           try {
             productId = await product.create(productData, connection);
-            break; // Exit loop if creation is successful
+            break;
           } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') {
               if (err.message.includes('slug')) {
-                // Append a random suffix to the slug
-                const randomSuffix = crypto.randomBytes(3).toString('hex'); // Generate a 6-character random string
-                productData.slug = `${req.body.slug}-${randomSuffix}`;
+                productData.slug = `${req.body.slug}-${crypto.randomBytes(3).toString('hex')}`;
               } else if (err.message.includes('sku')) {
-                // Append a random suffix to the sku
-                const randomSuffix = crypto.randomBytes(3).toString('hex'); // Generate a 6-character random string
-                productData.sku = `${req.body.sku}-${randomSuffix}`;
+                productData.sku = `${req.body.sku}-${crypto.randomBytes(3).toString('hex')}`;
               } else {
-                throw err; // Re-throw other errors
+                throw err;
               }
             } else {
-              throw err; // Re-throw other errors
+              throw err;
             }
           }
         }
 
-        // Handle attributes if provided
-        if (req.body.attributes && req.body.attributes.length > 0) {
+        // Add product attributes
+        if (req.body.attributes?.length > 0) {
           await product.addAttributes(productId, req.body.attributes, connection);
         }
 
-        if (req.body.variations) {
-          // Handle variations
+        // Create variations
+        if (req.body.variations?.length > 0) {
+          const hasDefault = req.body.variations.some((v) => v.isDefault);
+
+          for (const [index, variation] of req.body.variations.entries()) {
+            await variationModel.create(
+              {
+                productId,
+                isDefault: !hasDefault && index === 0, // Set first as default if none specified
+                ...variation,
+              },
+              connection
+            );
+          }
         }
+      });
+
+      // Get full product details with variations for response
+      const createdProduct = await product.findById(productId, {
+        withAttributes: true,
+        withVariations: true,
       });
 
       res.status(201).json({
         status: 'success',
-        data: { productId },
+        data: {
+          product: createdProduct,
+        },
       });
     } catch (err) {
       console.error('Error creating product:', err);

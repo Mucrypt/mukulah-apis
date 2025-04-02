@@ -1,3 +1,4 @@
+const { date } = require('zod');
 const { pool } = require('../config/db');
 const AppError = require('../utils/appError');
 
@@ -183,6 +184,7 @@ const tagController = {
 
       res.status(204).json({
         status: 'success',
+        message: 'Tag deleted successfully',
         data: null,
       });
     } catch (err) {
