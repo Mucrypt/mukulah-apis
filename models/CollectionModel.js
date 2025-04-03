@@ -14,7 +14,7 @@ class Collection {
    * @description Creates a new collection with the provided data. The function checks for
    * unique slug and validates the category ID. If the collection is created successfully,
    * it returns the ID of the created collection.
-   * 
+   *
    */
   async create({
     name,
@@ -101,7 +101,7 @@ class Collection {
    * @throws {Error} - If any error occurs during the process
    * @description Retrieves collections by category ID. The function can filter
    * active collections based on the provided parameter.
-   * 
+   *
    */
   async findByCategory(categoryId, { activeOnly = true } = {}) {
     const cacheKey = `collections:category:${categoryId}:activeOnly:${activeOnly}`;
@@ -138,11 +138,11 @@ class Collection {
    * @param {Array<number>} productIds - Array of product IDs
    * @returns {Promise<number>} - Number of products added
    * @throws {Error} - If any error occurs during the process
-   * @description Adds products to a collection. The function verifies if the collection exists and 
+   * @description Adds products to a collection. The function verifies if the collection exists and
    * if the products are already associated with the collection.
    * If a product already exists in the collection, it will not be added again.
    * The function returns the number of products added.
-   * 
+   *
    */
   async addProducts(collectionId, productIds) {
     let connection;
@@ -193,7 +193,7 @@ class Collection {
    * @throws {Error} - If any error occurs during the process
    * @description Retrieves all collections from the database. The function can filter
    * active collections based on the provided parameter.
-   * 
+   *
    */
   async findAll(activeOnly = false) {
     try {
@@ -222,7 +222,7 @@ class Collection {
    * @throws {Error} - If any error occurs during the process
    * @description Retrieves all active collections. The function caches the result for 1 hour.
    * If the cache is not found, it fetches from the database and caches the result.
-   * 
+   *
    */
   async getActiveCollections() {
     const cacheKey = 'collections:active';
@@ -238,10 +238,10 @@ class Collection {
    * Get products in a collection
    * @param {number} collectionId - Collection ID
    * @returns {Promise<Array>} - Array of products
-    * @throws {Error} - If any error occurs during the process 
-    * @description Retrieves all products in a specific collection. The function returns an array of products.
-    * If the collection is not found, an error is thrown.
-    * 
+   * @throws {Error} - If any error occurs during the process
+   * @description Retrieves all products in a specific collection. The function returns an array of products.
+   * If the collection is not found, an error is thrown.
+   *
    */
   async getCollectionProducts(collectionId) {
     try {
@@ -356,8 +356,6 @@ class Collection {
     }
   }
 
-
-
   /**
    * Bulk create collections
     * @param {Array<Object>} collectionsData - Array of collection data
@@ -424,7 +422,7 @@ class Collection {
    * Each collection is updated with the provided data.
    * If a collection with the same slug already exists,
    * an error is thrown. The function returns the number of affected rows.
-   * 
+   *
    */
   async bulkUpdate(updates) {
     let connection;
@@ -469,7 +467,7 @@ class Collection {
    * @description Retrieves analytics data for a specific collection.
    * The function returns an object containing the collection ID, name,
    * product count, order count, items sold, and revenue.
-   * 
+   *
    */
   async getCollectionAnalytics(collectionId) {
     const [results] = await this.pool.execute(
@@ -501,7 +499,7 @@ class Collection {
    * @throws {Error} - If any error occurs during the process
    * @description Retrieves the top collections based on the number of items sold.
    * The function returns an array of collections with their details.
-   * 
+   *
    */
   async getTopCollections(limit = 10) {
     const [results] = await this.pool.execute(
@@ -532,7 +530,7 @@ class Collection {
    * @throws {Error} - If any error occurs during the process
    * @description Retrieves trending collections based on recent orders.
    * The function returns an array of collections with their details.
-   * 
+   *
    */
   async getTrendingCollections(limit = 5) {
     const [results] = await this.pool.execute(
@@ -551,15 +549,15 @@ class Collection {
 
     return results;
   }
-/**
- * 
- * @param {number} limit - Number of collections to retrieve
- * @returns {Promise<Array>} - Array of new collections
- * @throws {Error} - If any error occurs during the process
- * @description Retrieves newly created collections.
- * The function returns an array of collections with their details.
- * 
- */
+  /**
+   *
+   * @param {number} limit - Number of collections to retrieve
+   * @returns {Promise<Array>} - Array of new collections
+   * @throws {Error} - If any error occurs during the process
+   * @description Retrieves newly created collections.
+   * The function returns an array of collections with their details.
+   *
+   */
   async getNewCollections(limit = 5) {
     const [results] = await this.pool.execute(
       `
@@ -573,15 +571,15 @@ class Collection {
 
     return results;
   }
-/**
- * 
- * @param {number} limit - Number of collections to retrieve
- * @returns {Promise<Array>} - Array of collections ending soon
- * @returns {Error} - If any error occurs during the process
- * @description Retrieves collections that are ending soon.
- * The function returns an array of collections with their details.
- * 
- */
+  /**
+   *
+   * @param {number} limit - Number of collections to retrieve
+   * @returns {Promise<Array>} - Array of collections ending soon
+   * @returns {Error} - If any error occurs during the process
+   * @description Retrieves collections that are ending soon.
+   * The function returns an array of collections with their details.
+   *
+   */
   async getEndingSoonCollections(limit = 5) {
     const [results] = await this.pool.execute(
       `
@@ -609,7 +607,7 @@ class Collection {
    * if the products are already associated with the collection.
    * If a product already exists in the collection,
    * it will not be added again.
-   * 
+   *
    */
   async removeProductsFromCollection(collectionId, productIds) {
     const [result] = await this.pool.execute(
@@ -618,20 +616,20 @@ class Collection {
     );
     return result.affectedRows;
   }
-/**
- * 
- * @param {number} collectionId - Collection ID 
- * @param {Array<number>} productIds - Array of product IDs
- * @returns {Promise<number>} - Number of products added
- * @throws {Error} - If any error occurs during the process 
- * @description Replaces all products in a collection with new products.
- * The function verifies if the collection exists and
- * removes all existing products before adding the new ones.
- * If a product already exists in the collection,
- * it will not be added again.
- * 
- * 
- */
+  /**
+   *
+   * @param {number} collectionId - Collection ID
+   * @param {Array<number>} productIds - Array of product IDs
+   * @returns {Promise<number>} - Number of products added
+   * @throws {Error} - If any error occurs during the process
+   * @description Replaces all products in a collection with new products.
+   * The function verifies if the collection exists and
+   * removes all existing products before adding the new ones.
+   * If a product already exists in the collection,
+   * it will not be added again.
+   *
+   *
+   */
   async replaceCollectionProducts(collectionId, productIds) {
     let connection;
     try {

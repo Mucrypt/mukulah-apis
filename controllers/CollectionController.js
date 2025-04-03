@@ -475,6 +475,7 @@ const collectionController = {
   /**
    * @desc    Get new collections
    * @route   GET /api/collections/new
+   *
    * @access  Public
    */
   getNewCollections: async (req, res, next) => {

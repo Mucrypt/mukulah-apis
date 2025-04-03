@@ -1,5 +1,5 @@
 ﻿CREATE TABLE IF NOT EXISTS products (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
     description TEXT NOT NULL,
@@ -48,7 +48,7 @@
 
 CREATE TABLE IF NOT EXISTS product_attributes (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_id BIGINT UNSIGNED NOT NULL,
+    product_id INT NOT NULL,
     attribute_id BIGINT UNSIGNED NOT NULL,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS product_attribute_values (
 );
 
 CREATE TABLE IF NOT EXISTS product_tags (
-    product_id BIGINT UNSIGNED NOT NULL,
+    product_id INT NOT NULL,
     tag_id BIGINT UNSIGNED NOT NULL,
     PRIMARY KEY (product_id, tag_id),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,

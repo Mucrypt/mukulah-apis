@@ -18,6 +18,9 @@ const productVariationRoutes = require('./routes/ProductVariationRoutes');
 const reviewRoutes = require('./routes/ReviewRoutes');
 const tagRoutes = require('./routes/TagRoutes');
 const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes');
+const cartRoutes = require('./routes/CartRoutes');
+const orderRoutes = require('./routes/OrderRoutes');
+const checkoutRoutes = require('./routes/CheckoutRoutes');
 
 // Initialize Express app
 const app = express();
@@ -73,6 +76,9 @@ app.use('/api/product-variations', productVariationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/product-relationships', productRelationshipRoutes);
+app.use('/api/carts', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/checkouts', checkoutRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
