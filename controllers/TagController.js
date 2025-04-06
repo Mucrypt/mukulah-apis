@@ -1,13 +1,12 @@
-const { date } = require('zod');
-const { pool } = require('../config/db');
 const AppError = require('../utils/appError');
+const TagModel = require('../models/TagModel');
 
 const tagController = {
   // Create tag
   createTag: async (req, res, next) => {
     try {
       const { name, slug } = req.body;
-      const tag = new (require('../models/TagModel'))(pool);
+      const tag = new TagModel();
 
       const tagId = await tag.create({
         name,
@@ -29,7 +28,7 @@ const tagController = {
   getAllTags: async (req, res, next) => {
     try {
       const { popular, limit } = req.query;
-      const tag = new (require('../models/TagModel'))(pool);
+      const tag = new TagModel();
 
       const tags = await tag.findAll({
         popularOnly: popular === 'true',
@@ -51,7 +50,7 @@ const tagController = {
   // Get tag by ID or slug
   getTag: async (req, res, next) => {
     try {
-      const tag = new (require('../models/TagModel'))(pool);
+      const tag = new TagModel();
       let tagData;
 
       // Check if param is ID (number) or slug (string)
@@ -80,12 +79,11 @@ const tagController = {
   getTagProducts: async (req, res, next) => {
     try {
       const { page = 1, limit = 20 } = req.query;
-      const tag = new (require('../models/TagModel'))(pool);
+      const tag = new TagModel();
 
       let tagId;
-      // Check if param is ID (number) or slug (string)
       if (!isNaN(req.params.id)) {
-        tagId = req.params.id;
+        tagId = parseInt(req.params.id, 10);
       } else {
         const tagData = await tag.findBySlug(req.params.id);
         if (!tagData) {
@@ -94,9 +92,13 @@ const tagController = {
         tagId = tagData.id;
       }
 
+      // Validate and sanitize parameters
+      const validatedPage = Math.max(1, parseInt(page, 10) || 1);
+      const validatedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
       const products = await tag.getProductsByTag(tagId, {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: validatedPage,
+        limit: validatedLimit,
       });
 
       res.status(200).json({
@@ -117,8 +119,11 @@ const tagController = {
   // Add tag to product
   addTagToProduct: async (req, res, next) => {
     try {
-      const tag = new (require('../models/TagModel'))(pool);
-      const addedRows = await tag.addToProduct(req.params.productId, req.params.tagId);
+      const tag = new TagModel();
+      const addedRows = await tag.addToProduct(
+        parseInt(req.params.productId, 10),
+        parseInt(req.params.tagId, 10)
+      );
 
       if (addedRows === 0) {
         return next(new AppError('Tag already exists on product', 400));
@@ -136,8 +141,11 @@ const tagController = {
   // Remove tag from product
   removeTagFromProduct: async (req, res, next) => {
     try {
-      const tag = new (require('../models/TagModel'))(pool);
-      const removedRows = await tag.removeFromProduct(req.params.productId, req.params.tagId);
+      const tag = new TagModel();
+      const removedRows = await tag.removeFromProduct(
+        parseInt(req.params.productId, 10),
+        parseInt(req.params.tagId, 10)
+      );
 
       if (removedRows === 0) {
         return next(new AppError('Tag not found on product', 404));
@@ -156,8 +164,8 @@ const tagController = {
   updateTag: async (req, res, next) => {
     try {
       const { name, slug } = req.body;
-      const tag = new (require('../models/TagModel'))(pool);
-      const updatedRows = await tag.update(req.params.id, { name, slug });
+      const tag = new TagModel();
+      const updatedRows = await tag.update(parseInt(req.params.id, 10), { name, slug });
 
       if (updatedRows === 0) {
         return next(new AppError('No tag found with that ID', 404));
@@ -175,8 +183,8 @@ const tagController = {
   // Delete tag
   deleteTag: async (req, res, next) => {
     try {
-      const tag = new (require('../models/TagModel'))(pool);
-      const deletedRows = await tag.delete(req.params.id);
+      const tag = new TagModel();
+      const deletedRows = await tag.delete(parseInt(req.params.id, 10));
 
       if (deletedRows === 0) {
         return next(new AppError('No tag found with that ID', 404));

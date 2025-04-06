@@ -1,109 +1,122 @@
-class Tag {
-  constructor(pool) {
-    this.pool = pool;
+const { sequelize } = require('../config/db');
+const Tag = require('./entities/Tag');
+const Product = require('./entities/Product'); // Updated path
+const ProductTag = require('./entities/ProductTag'); // Import ProductTag model
+
+class TagModel {
+  constructor() {
+    this.Tag = Tag;
   }
 
   async create({ name, slug }) {
-    const [result] = await this.pool.execute('INSERT INTO tags (name, slug) VALUES (?, ?)', [
-      name,
-      slug,
-    ]);
-    return result.insertId;
+    const tag = await this.Tag.create({ name, slug });
+    return tag.id;
   }
 
   async findById(id) {
-    const [rows] = await this.pool.execute('SELECT * FROM tags WHERE id = ?', [id]);
-    return rows[0] || null;
+    return await this.Tag.findByPk(id);
   }
 
   async findBySlug(slug) {
-    const [rows] = await this.pool.execute('SELECT * FROM tags WHERE slug = ?', [slug]);
-    return rows[0] || null;
+    return await this.Tag.findOne({ where: { slug } });
   }
 
   async findAll({ popularOnly = false, limit = 50 } = {}) {
-    let query = 'SELECT * FROM tags';
     if (popularOnly) {
-      query = `SELECT t.*, COUNT(pt.product_id) as product_count 
-               FROM tags t
-               LEFT JOIN product_tags pt ON t.id = pt.tag_id
-               GROUP BY t.id
-               ORDER BY product_count DESC`;
+      return await this.Tag.findAll({
+        attributes: {
+          include: [
+            [
+              sequelize.literal(
+                '(SELECT COUNT(*) FROM product_tags WHERE product_tags.tag_id = Tag.id)'
+              ),
+              'product_count',
+            ],
+          ],
+        },
+        order: [[sequelize.literal('product_count'), 'DESC']],
+        limit: parseInt(limit, 10),
+      });
     }
-    query += ` LIMIT ${limit}`;
-
-    const [rows] = await this.pool.execute(query);
-    return rows;
+    return await this.Tag.findAll({
+      limit: parseInt(limit, 10),
+    });
   }
 
   async getProductsByTag(tagId, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
-    const [products] = await this.pool.execute(
-      `SELECT p.* FROM products p
-       JOIN product_tags pt ON p.id = pt.product_id
-       WHERE pt.tag_id = ? AND p.status = 'published'
-       ORDER BY p.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [tagId, limit, offset]
-    );
+    const tag = await this.Tag.findByPk(tagId, {
+      include: [
+        {
+          model: Product, // Ensure this is the Sequelize model
+          through: { attributes: [] }, // Skip join table attributes
+        },
+      ],
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
+    });
 
-    const [count] = await this.pool.execute(
-      `SELECT COUNT(*) as total FROM product_tags WHERE tag_id = ?`,
-      [tagId]
-    );
+    if (!tag) {
+      throw new Error('Tag not found');
+    }
+
+    const total = await sequelize.models.Product_Tag.count({
+      where: { tag_id: tagId },
+    });
 
     return {
-      products,
-      total: count[0].total,
-      page,
-      limit,
+      products: tag.Products,
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
     };
   }
 
   async addToProduct(productId, tagId) {
-    const [result] = await this.pool.execute(
-      'INSERT IGNORE INTO product_tags (product_id, tag_id) VALUES (?, ?)',
-      [productId, tagId]
-    );
-    return result.affectedRows;
+    try {
+      console.log(`Adding tag ${tagId} to product ${productId}`); // Debug log
+      const [result, created] = await ProductTag.findOrCreate({
+        where: { product_id: productId, tag_id: tagId },
+      });
+      console.log(`Tag added: ${created}`); // Debug log
+      return created ? 1 : 0;
+    } catch (error) {
+      console.error('Error in addToProduct:', error.message); // Log the error
+      throw error;
+    }
   }
 
   async removeFromProduct(productId, tagId) {
-    const [result] = await this.pool.execute(
-      'DELETE FROM product_tags WHERE product_id = ? AND tag_id = ?',
-      [productId, tagId]
-    );
-    return result.affectedRows;
+    return await ProductTag.destroy({
+      where: { product_id: productId, tag_id: tagId },
+    });
   }
 
   async update(id, { name, slug }) {
-    const [result] = await this.pool.execute('UPDATE tags SET name = ?, slug = ? WHERE id = ?', [
-      name,
-      slug,
-      id,
-    ]);
-    return result.affectedRows;
+    const [affectedRows] = await this.Tag.update({ name, slug }, { where: { id } });
+    return affectedRows;
   }
 
   async delete(id) {
-    let connection;
+    const transaction = await sequelize.transaction();
     try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
+      await sequelize.models.Product_Tag.destroy({
+        where: { tag_id: id },
+        transaction,
+      });
 
-      await connection.execute('DELETE FROM product_tags WHERE tag_id = ?', [id]);
+      const deletedRows = await this.Tag.destroy({
+        where: { id },
+        transaction,
+      });
 
-      const [result] = await connection.execute('DELETE FROM tags WHERE id = ?', [id]);
-
-      await connection.commit();
-      return result.affectedRows;
+      await transaction.commit();
+      return deletedRows;
     } catch (err) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw err;
-    } finally {
-      if (connection) connection.release();
     }
   }
 }
 
-module.exports = Tag;
+module.exports = TagModel;

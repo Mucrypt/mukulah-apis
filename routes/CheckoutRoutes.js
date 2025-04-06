@@ -8,5 +8,7 @@ router.use(authenticate);
 
 router.post('/', checkoutController.processCheckout);
 router.get('/:id', checkoutController.getCheckoutDetails);
+router.post('/shipping-options', checkoutController.getShippingOptions); // Ensure this is defined
+router.post('/validate-payment', checkoutController.validatePayment);
 
 module.exports = router;

@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Brand, Tag & Review API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Usersentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"romeomukulah@gmail.com\",\n  \"password\": \"Yaah3813@@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "users", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Brands",
+      "item": [
+        {
+          "name": "Get All Brands",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands"]
+            }
+          }
+        },
+        {
+          "name": "Get Brand By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Brand Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands/1/products",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands", "1", "products"]
+            }
+          }
+        },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/brands",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nike\",\n  \"slug\": \"nike\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/brands/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Nike\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/brands/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "brands", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Tags",
+      "item": [
+        {
+          "name": "Get All Tags",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Get Tag By ID or Slug",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Products by Tag",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags/1/products",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1", "products"]
+            }
+          }
+        },
+        {
+          "name": "Create Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Popular\",\n  \"slug\": \"popular\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Tag",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Tag\",\n  \"slug\": \"updated-tag\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Tag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Tag to Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/1/product/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1", "product", "1"]
+            }
+          }
+        },
+        {
+          "name": "Remove Tag from Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/1/product/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "tags", "1", "product", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Reviews",
+      "item": [
+        {
+          "name": "Get Product Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/product/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "product", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Review By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Review Replies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1/replies",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1", "replies"]
+            }
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/product/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "product", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Amazing!\",\n  \"comment\": \"This was great!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark Review Helpful",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1/helpful",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1", "helpful"]
+            }
+          }
+        },
+        {
+          "name": "Reply to Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1/replies",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1", "replies"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Thank you!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Approve Review",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1/approve",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Usersorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "reviews", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

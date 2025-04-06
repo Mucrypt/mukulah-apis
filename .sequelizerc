@@ -1,0 +1,9 @@
+// .sequelizerc
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve('backend', 'config', 'sequelizeConfig.js'),
+  'models-path': path.resolve('backend', 'models'),
+  'seeders-path': path.resolve('backend', 'database', 'seeds'),
+  'migrations-path': path.resolve('backend', 'database', 'migrations')
+};

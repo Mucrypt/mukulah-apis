@@ -1,8 +1,27 @@
-const pool = require('../config/db');
-
+const { pool } = require('../config/db');
 class Order {
   static async create(userId, orderData) {
     const { shippingAddress, paymentMethod, items, totalPrice } = orderData;
+
+    // Validate required fields
+    if (
+      !shippingAddress ||
+      !shippingAddress.address ||
+      !shippingAddress.city ||
+      !shippingAddress.postalCode ||
+      !shippingAddress.country
+    ) {
+      throw new Error('Invalid shipping address');
+    }
+    if (!paymentMethod) {
+      throw new Error('Payment method is required');
+    }
+    if (!items || items.length === 0) {
+      throw new Error('Order items are required');
+    }
+    if (!totalPrice || totalPrice <= 0) {
+      throw new Error('Total price must be greater than zero');
+    }
 
     const connection = await pool.getConnection();
     try {
@@ -28,6 +47,11 @@ class Order {
 
       // Add order items
       for (const item of items) {
+        if (!item.productId || !item.name || !item.quantity || !item.price) {
+          console.error('Invalid order item:', item); // Log invalid item for debugging
+          throw new Error('Invalid order item');
+        }
+
         await connection.execute(
           `INSERT INTO order_items 
           (order_id, product_id, name, quantity, price, image, size, color) 
@@ -38,19 +62,32 @@ class Order {
             item.name,
             item.quantity,
             item.price,
-            item.image,
+            item.image || null,
             item.size || null,
             item.color || null,
           ]
         );
 
+        // Fetch current stock and sales count
+        const [product] = await connection.execute(
+          `SELECT stock_quantity, sales_count FROM products WHERE id = ?`,
+          [item.productId]
+        );
+
+        if (product.length === 0) {
+          throw new Error(`Product with ID ${item.productId} not found`);
+        }
+
+        const newStockQuantity = product[0].stock_quantity - item.quantity;
+        const newSalesCount = product[0].sales_count + item.quantity;
+
         // Update product stock and sales count
         await connection.execute(
           `UPDATE products SET 
-           stock_quantity = stock_quantity - ?,
-           sales_count = sales_count + ? 
+           stock_quantity = ?, 
+           sales_count = ? 
            WHERE id = ?`,
-          [item.quantity, item.quantity, item.productId]
+          [newStockQuantity, newSalesCount, item.productId]
         );
       }
 

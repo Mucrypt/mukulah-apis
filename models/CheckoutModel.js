@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const { pool } = require('../config/db'); // ✅ correct
 
 class Checkout {
   static async create(userId, checkoutData) {
@@ -62,20 +62,29 @@ class Checkout {
   }
 
   static async getCheckoutWithItems(checkoutId) {
-    const [checkouts] = await pool.execute('SELECT * FROM checkouts WHERE id = ? LIMIT 1', [
+    console.log('Fetching checkout with ID:', checkoutId); // Debugging log
+
+    const [checkouts] = await pool.execute(`SELECT * FROM checkouts WHERE id = ? LIMIT 1`, [
       checkoutId,
     ]);
 
-    if (checkouts.length === 0) return null;
+    if (checkouts.length === 0) {
+      console.log('No checkout found for ID:', checkoutId); // Debugging log
+      return null;
+    }
 
     const checkout = checkouts[0];
     const [items] = await pool.execute(
-      `SELECT ci.*, p.stock_status 
+      `SELECT ci.*, p.stock_status, 
+       (SELECT url FROM product_images WHERE product_id = ci.product_id ORDER BY is_primary DESC LIMIT 1) AS image
        FROM checkout_items ci
        JOIN products p ON ci.product_id = p.id
        WHERE ci.checkout_id = ?`,
       [checkoutId]
     );
+
+    console.log('Checkout found:', checkout); // Debugging log
+    console.log('Items found:', items); // Debugging log
 
     return {
       ...checkout,

@@ -26,18 +26,20 @@ class Category {
       await connection.execute('UPDATE categories SET rgt = rgt + 2 WHERE rgt >= ?', [left]);
       await connection.execute('UPDATE categories SET lft = lft + 2 WHERE lft > ?', [left]);
 
-      // Insert the new category
+      // Insert the new category with created_at
       const [result] = await connection.execute(
         `INSERT INTO categories SET
-          name = :name,
-          slug = :slug,
-          description = :description,
-          image_url = :imageUrl,
-          parent_id = :parentId,
-          lft = :left,
-          rgt = :right,
-          depth = :depth
-        `,
+        name = :name,
+        slug = :slug,
+        description = :description,
+        image_url = :imageUrl,
+        parent_id = :parentId,
+        lft = :left,
+        rgt = :right,
+        depth = :depth,
+        created_at = NOW(),
+        updated_at = NOW()
+      `,
         {
           name,
           slug,
@@ -95,19 +97,28 @@ class Category {
         }
       }
 
-      const [result] = await connection.execute(
-        `UPDATE categories SET
-          name = COALESCE(:name, name),
-          slug = COALESCE(:slug, slug),
-          description = COALESCE(:description, description),
-          image_url = COALESCE(:imageUrl, image_url),
-          status = COALESCE(:status, status),
-          meta_title = COALESCE(:metaTitle, meta_title),
-          meta_description = COALESCE(:metaDescription, meta_description),
-          meta_keywords = COALESCE(:metaKeywords, meta_keywords)
-        WHERE id = :id`,
-        { ...updates, id }
-      );
+      // Build the SET clause dynamically based on provided updates
+      const setClauses = [];
+      const params = {};
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+          setClauses.push(`${key} = :${key}`);
+          params[key] = value;
+        }
+      }
+
+      // Always update the updated_at timestamp
+      setClauses.push('updated_at = NOW()');
+
+      if (setClauses.length === 0) {
+        throw new AppError('No valid fields to update', 400);
+      }
+
+      const query = `UPDATE categories SET ${setClauses.join(', ')} WHERE id = :id`;
+      params.id = id;
+
+      const [result] = await connection.execute(query, params);
 
       // Invalidate relevant caches
       await cacheService.clearByPattern(`category:${id}:*`);

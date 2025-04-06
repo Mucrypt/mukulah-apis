@@ -1,0 +1,539 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+    "name": "Category API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Complete API collection for Category management"
+  },
+  "item": [
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Get Category Tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": ["{{base_url}}"],
+              "path": ["categories"]
+            },
+            "description": "Get full category tree structure"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Localized Category Tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/localized/en",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "localized", "en"]
+            },
+            "description": "Get category tree with translations for specified language"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1"]
+            },
+            "description": "Get details for a single category"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/products?minPrice=10&maxPrice=100&sortBy=price_asc",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "products"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "10"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "price_asc"
+                }
+              ]
+            },
+            "description": "Get products in a category with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trending Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/products/trending",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "products", "trending"]
+            },
+            "description": "Get trending products in a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/analytics",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "analytics"]
+            },
+            "description": "Get analytics data for a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/analytics/top",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "analytics", "top"]
+            },
+            "description": "Get top performing categories"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Category Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/products",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "products"]
+            },
+            "description": "Get products in a category"
+          }
+        },
+        {
+          "name": "Get Discounted Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/products/discounted",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "products", "discounted"]
+            },
+            "description": "Get discounted products in a category"
+          }
+        },
+        {
+          "name": "Get Low Stock Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/products/low-stock",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "products", "low-stock"]
+            },
+            "description": "Get low stock products in a category"
+          }
+        },
+        {
+          "name": "Get Conversion Funnel",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/conversion-funnel",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "conversion-funnel"]
+            },
+            "description": "Get conversion funnel for a category"
+          }
+        },
+        {
+          "name": "Get Engagement Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/engagement",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "engagement"]
+            },
+            "description": "Get engagement metrics for a category"
+          }
+        },
+        {
+          "name": "Get Complementary Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/complementary",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "complementary"]
+            },
+            "description": "Get complementary categories"
+          }
+        },
+        {
+          "name": "Get Frequently Bought Together",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/frequently-bought",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "frequently-bought"]
+            },
+            "description": "Get categories frequently bought together"
+          }
+        },
+        {
+          "name": "Get Upcoming Seasonal Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/seasonal/upcoming",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "seasonal", "upcoming"]
+            },
+            "description": "Get upcoming seasonal categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authenticated Endpoints",
+      "item": [
+        {
+          "name": "Get Personalized Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categories/personalized/recommendations",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "personalized", "recommendations"]
+            },
+            "description": "Get personalized category recommendations for user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Endpoints",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Category\",\n  \"slug\": \"new-category\",\n  \"description\": \"Description of new category\",\n  \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": ["{{base_url}}"],
+              "path": ["categories"]
+            },
+            "description": "Create a new category"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/1",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1"]
+            },
+            "description": "Update a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Categories",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id\": 1,\n    \"name\": \"Updated Category 1\"\n  },\n  {\n    \"id\": 2,\n    \"status\": \"inactive\"\n  }\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "bulk"]
+            },
+            "description": "Bulk update multiple categories"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Display Layout",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"layout\": \"grid\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/1/display",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "display"]
+            },
+            "description": "Set display layout for a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Category Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://example.com/banner.jpg\",\n  \"title\": \"Summer Sale\",\n  \"subtitle\": \"Up to 50% off\",\n  \"linkUrl\": \"/summer-sale\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/1/banners",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "banners"]
+            },
+            "description": "Add a banner to a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Translation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"languageCode\": \"es\",\n  \"name\": \"Nueva Categoría\",\n  \"description\": \"Descripción en español\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/1/translations",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "translations"]
+            },
+            "description": "Add translation for a category"
+          },
+          "response": []
+        },
+        {
+          "name": "Rollback Category Version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionId\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/1/rollback",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1", "rollback"]
+            },
+            "description": "Rollback to a previous version of the category"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Products to Category",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/add-products",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "add-products"]
+            },
+            "description": "Add products to a category"
+          }
+        },
+        {
+          "name": "Remove Products from Category",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/products/batch",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "products", "batch"]
+            },
+            "description": "Remove products from a category"
+          }
+        },
+        {
+          "name": "Sync Category to Channels",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/sync",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "sync"]
+            },
+            "description": "Sync category to external channels"
+          }
+        },
+        {
+          "name": "Set Seasonal Attributes",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/seasonal",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "seasonal"]
+            },
+            "description": "Set seasonal attributes for a category"
+          }
+        },
+        {
+          "name": "Get Category History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/history",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "history"]
+            },
+            "description": "Get version history of a category"
+          }
+        },
+        {
+          "name": "Get AI Category Suggestions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/:id/suggestions",
+              "host": ["{{base_url}}"],
+              "path": ["categories", ":id", "suggestions"]
+            },
+            "description": "Get AI-based category suggestions"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "auth_token",
+      "value": "your_admin_token_here"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ]
+}

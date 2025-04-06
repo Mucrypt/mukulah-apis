@@ -46,7 +46,7 @@ const auth = {
           process.env.JWT_SECRET,
           {
             algorithms: ['HS256'],
-            ignoreExpiration: false,
+            ignoreExpiration: false, // Ensure expiration is respected
           },
           (err, decoded) => {
             if (err) reject(err);

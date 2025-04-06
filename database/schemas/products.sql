@@ -12,7 +12,9 @@
     ean VARCHAR(100),
     isbn VARCHAR(100),
     brand_id BIGINT UNSIGNED,
+    seller_id BIGINT UNSIGNED,
     FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL,
+    FOREIGN KEY (seller_id) REFERENCES sellers(id) ON DELETE SET NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
     stock_status ENUM('in_stock', 'out_of_stock', 'backorder') DEFAULT 'in_stock',
     weight DECIMAL(10,2),
@@ -55,9 +57,9 @@ CREATE TABLE IF NOT EXISTS product_attributes (
 );
 
 CREATE TABLE IF NOT EXISTS product_attribute_values (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_attribute_id BIGINT UNSIGNED NOT NULL,
-    attribute_value_id BIGINT UNSIGNED NOT NULL,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_attribute_id INT UNSIGNED NOT NULL,
+    attribute_value_id INT UNSIGNED NOT NULL, -- Ensure UNSIGNED matches attribute_values.id
     FOREIGN KEY (product_attribute_id) REFERENCES product_attributes(id) ON DELETE CASCADE,
     FOREIGN KEY (attribute_value_id) REFERENCES attribute_values(id) ON DELETE CASCADE
 );
@@ -69,3 +71,11 @@ CREATE TABLE IF NOT EXISTS product_tags (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS product_categories (
+    product_id INT NOT NULL,
+    category_id INT UNSIGNED NOT NULL, -- Ensure UNSIGNED matches categories.id
+    PRIMARY KEY (product_id, category_id),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);

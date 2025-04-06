@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "E-Commerce Core Services API (Health, Email, Payments & Webhooks)",
+    "description": "Complete collection for testing core e-commerce services including system health, email delivery, payment processing, and webhook integrations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "description": "Base API URL with /api prefix"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "JWT authentication token"
+    },
+    {
+      "key": "checkoutId",
+      "value": "",
+      "description": "Sample checkout ID for payment testing"
+    }
+  ],
+  "item": [
+    {
+      "name": "🩺 System Health & Monitoring",
+      "description": "Endpoints for checking API status and performance metrics",
+      "item": [
+        {
+          "name": "GET /health - Check API Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /metrics - System Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "✉️ Email Service Testing",
+      "description": "Endpoints for testing email delivery and templates",
+      "item": [
+        {
+          "name": "GET /email/test - Quick Email Test",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/email/test",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "email", "test"]
+            }
+          }
+        },
+        {
+          "name": "POST /email/test - Custom Email Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"test@example.com\",\n  \"subject\": \"Test Email\",\n  \"template\": \"order-confirmation\",\n  \"data\": {\n    \"orderId\": \"12345\",\n    \"customerName\": \"John Doe\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email/test",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "email", "test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Payment Processing",
+      "description": "Endpoints for payment gateway integration and processing",
+      "item": [
+        {
+          "name": "POST /payments/stripe/session - Create Stripe Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkoutId\": \"{{checkoutId}}\",\n  \"successUrl\": \"https://yourstore.com/success\",\n  \"cancelUrl\": \"https://yourstore.com/cancel\",\n  \"lineItems\": [\n    {\n      \"priceId\": \"price_123\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/stripe/session",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "payments", "stripe", "session"]
+            }
+          }
+        },
+        {
+          "name": "GET /payments/stripe/session/:id - Retrieve Stripe Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/stripe/session/{{checkoutId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "payments", "stripe", "session", "{{checkoutId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🪝 Webhook Integrations",
+      "description": "Endpoints for receiving and processing webhook events",
+      "item": [
+        {
+          "name": "POST /webhooks/stripe - Stripe Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Stripe-Signature",
+                "value": "REPLACE_WITH_REAL_SIGNATURE",
+                "description": "Stripe webhook signature for verification"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_123\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"cs_123\",\n      \"metadata\": {\n        \"checkoutId\": \"{{checkoutId}}\"\n      },\n      \"payment_intent\": \"pi_123\",\n      \"customer\": \"cus_123\",\n      \"amount_total\": 1999,\n      \"currency\": \"usd\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/stripe",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "webhooks", "stripe"]
+            }
+          }
+        },
+        {
+          "name": "POST /webhooks/paypal - PayPal Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Paypal-Signature",
+                "value": "REPLACE_WITH_REAL_SIGNATURE",
+                "description": "PayPal webhook signature"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"PAYMENT.CAPTURE.COMPLETED\",\n  \"resource\": {\n    \"custom_id\": \"{{checkoutId}}\",\n    \"amount\": {\n      \"value\": \"19.99\",\n      \"currency_code\": \"USD\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/paypal",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "webhooks", "paypal"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

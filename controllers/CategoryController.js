@@ -30,7 +30,7 @@ const categoryController = {
         status: 'success',
         message: 'Category created successfully',
         data: {
-          categoryId,
+          categoryId: categoryId, // Make sure this is included
         },
       });
     } catch (err) {
@@ -137,27 +137,49 @@ const categoryController = {
     }
   },
 
+ 
   updateCategory: async (req, res, next) => {
     try {
-      if (Object.keys(req.body).length === 0) {
-        logger.warn('Update attempted with no fields');
-        return next(new AppError('At least one field to update is required', 400));
+      // Filter out undefined values from the request body
+      const updates = {};
+      for (const [key, value] of Object.entries(req.body)) {
+        if (value !== undefined) {
+          updates[key] = value;
+        }
       }
 
+
+
+      if (Object.keys(updates).length === 0) {
+        logger.warn('Update attempted with no valid fields');
+        return next(new AppError('At least one valid field to update is required', 400));
+      }
+
+      logger.debug(`Updating category with ID: ${req.params.id}`);
+      logger.debug(`Update fields: ${JSON.stringify(updates)}`);
+
       const category = new Category(pool);
-      const updatedRows = await category.update(req.params.id, req.body);
+      const updatedRows = await category.update(req.params.id, updates);
 
       if (updatedRows === 0) {
         logger.warn(`Update failed - category not found with ID: ${req.params.id}`);
         return next(new AppError('No category found with that ID', 404));
       }
 
-      logger.info(`Category updated with ID: ${req.params.id}`);
+      const updatedCategory = await category.findById(req.params.id);
+      if (!updatedCategory) {
+        logger.warn(`Update failed - category not found with ID: ${req.params.id}`);
+        return next(new AppError('No category found with that ID', 404));
+      }
 
-      res.status(200).json({
-        status: 'success',
-        message: 'Category updated successfully',
-      });
+      logger.info(`Category updated with ID: ${req.params.id}`);
+     res.status(200).json({
+       status: 'success',
+       message: 'Category updated successfully',
+       data: {
+         category: updatedCategory,
+       },
+     });
     } catch (err) {
       logger.error(`Error updating category ${req.params.id}: ${err.message}`);
       if (err.message.includes('already exists')) {
@@ -166,7 +188,6 @@ const categoryController = {
       next(new AppError('Failed to update category', 500));
     }
   },
-
   deleteCategory: async (req, res, next) => {
     try {
       const category = new Category(pool);
@@ -358,7 +379,9 @@ const categoryController = {
     try {
       if (!req.user || !req.user.id) {
         logger.warn('Unauthorized access to personalized categories.');
-        return next(new AppError('Authentication required to access personalized categories.', 401));
+        return next(
+          new AppError('Authentication required to access personalized categories.', 401)
+        );
       }
 
       const category = new Category(pool);
@@ -379,7 +402,9 @@ const categoryController = {
       logger.error(
         `Error getting personalized categories for user ${req.user?.id}: ${err.message}`
       );
-      next(new AppError('Failed to retrieve personalized categories. Please try again later.', 500));
+      next(
+        new AppError('Failed to retrieve personalized categories. Please try again later.', 500)
+      );
     }
   },
 
@@ -591,7 +616,12 @@ const categoryController = {
       });
     } catch (err) {
       logger.error(`Error getting upcoming seasonal categories: ${err.message}`);
-      next(new AppError('Failed to retrieve upcoming seasonal categories. Please try again later.', 500));
+      next(
+        new AppError(
+          'Failed to retrieve upcoming seasonal categories. Please try again later.',
+          500
+        )
+      );
     }
   },
 

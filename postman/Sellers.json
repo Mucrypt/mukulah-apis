@@ -1,0 +1,493 @@
+{
+  "info": {
+    "name": "E-Commerce API - Sellers",
+    "description": "Complete collection for testing seller endpoints in the e-commerce API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "description": "Base API URL with /api prefix"
+    },
+    {
+      "key": "sellerToken",
+      "value": "",
+      "description": "JWT token for authenticated seller"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "description": "JWT token for admin user"
+    },
+    {
+      "key": "sellerId",
+      "value": "",
+      "description": "ID of the seller"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "description": "ID of a product"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "description": "ID of an order"
+    }
+  ],
+  "item": [
+    {
+      "name": "👤 Seller Registration & Authentication",
+      "description": "Endpoints for seller registration and authentication",
+      "item": [
+        {
+          "name": "POST /users/register - Register as Seller",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Seller Name\",\n  \"email\": \"seller@example.com\",\n  \"password\": \"password123\",\n  \"passwordConfirm\": \"password123\",\n  \"accountType\": \"seller\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/register",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "users", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /users/login - Login as Seller",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "users", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📝 Seller Profile Management",
+      "description": "Endpoints for managing seller profiles and approvals",
+      "item": [
+        {
+          "name": "GET /sellers - Get All Sellers (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sellers/:id - Get Seller Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /sellers/:id - Update Seller Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"Updated Business Name\",\n  \"business_phone\": \"+1234567890\",\n  \"business_address\": \"123 Updated Street, City\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /sellers/:id/approve - Admin Approve Seller",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/approve",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "approve"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🛍️ Seller Product Management",
+      "description": "Endpoints for managing seller products and approvals",
+      "item": [
+        {
+          "name": "GET /sellers/:id/products - Get Seller's Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/products",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /sellers/:id/products - Create Product (Draft)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Product\",\n  \"description\": \"Product description\",\n  \"price\": 99.99,\n  \"sku\": \"PROD-001\",\n  \"stock_quantity\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/products",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /sellers/:id/products/:productId - Update Seller's Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product Name\",\n  \"price\": 89.99,\n  \"status\": \"published\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/products/{{productId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "products", "{{productId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /sellers/:id/products/:productId - Delete Seller's Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/products/{{productId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "products", "{{productId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /products/:id/approve - Admin Approve Seller's Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}/approve",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "{{productId}}", "approve"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Seller Analytics & Reports",
+      "description": "Endpoints for seller analytics and reporting",
+      "item": [
+        {
+          "name": "GET /sellers/:id/dashboard - Get Seller Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/dashboard",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "dashboard"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sellers/:id/sales-report - Get Sales Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/sales-report?startDate=2023-01-01&endDate=2023-12-31",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "sales-report"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2023-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2023-12-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📦 Seller Order Management",
+      "description": "Endpoints for managing seller orders",
+      "item": [
+        {
+          "name": "GET /sellers/:id/orders - Get Seller's Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/orders",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /sellers/:id/orders/:orderId - Update Order Status (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\",\n  \"tracking_number\": \"TRACK123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/orders/{{orderId}}",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sellers", "{{sellerId}}", "orders", "{{orderId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sellerToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

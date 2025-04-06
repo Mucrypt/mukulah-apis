@@ -1,0 +1,551 @@
+{
+  "info": {
+    "name": "Attributes & Variations",
+    "_postman_id": "a5d33b6f-1234-4a2d-a1a6-attributes-variations",
+    "description": "Postman collection to test attribute and product variation endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"romeomukulah@gmail.com\",\n  \"password\": \"Yaah3813@@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "users", "login"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", res.token);",
+                  "pm.environment.set(\"token\", res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📌 Attributes",
+      "item": [
+        {
+          "name": "Get All Attributes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attributes",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes"]
+            }
+          }
+        },
+        {
+          "name": "Get Attribute by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Attribute",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Color\",\n  \"slug\": \"color\",\n  \"type\": \"text\",\n  \"isFilterable\": true,\n  \"isVisible\": true,\n  \"isVariation\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attributes",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes"]
+            }
+          }
+        },
+        {
+          "name": "Update Attribute",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Color\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Attribute",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎨 Attribute Values",
+      "item": [
+        {
+          "name": "Get Values for Attribute",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1/values",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1", "values"]
+            }
+          }
+        },
+        {
+          "name": "Add Value to Attribute",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Red\",\n  \"slug\": \"red\",\n  \"colorCode\": \"#ff0000\",\n  \"imageUrl\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1/values",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1", "values"]
+            }
+          }
+        },
+        {
+          "name": "Update Attribute Value",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Dark Red\",\n  \"colorCode\": \"#990000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1/values/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1", "values", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Attribute Value",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attributes/1/values/1",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "attributes", "1", "values", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔁 Product Variations",
+      "item": [
+        {
+          "name": "Create Variation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-RED-S\",\n  \"price\": 20.99,\n  \"stockQuantity\": 100,\n  \"attributes\": [\n    { \"attributeId\": 1, \"valueId\": 2 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations"]
+            }
+          }
+        },
+        {
+          "name": "Get Product Variations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations"]
+            }
+          }
+        },
+        {
+          "name": "Set Default Variation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/2/default",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "2", "default"]
+            }
+          }
+        },
+        {
+          "name": "Update Variation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 24.99,\n  \"stockQuantity\": 75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/2",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "2"]
+            }
+          }
+        },
+        {
+          "name": "Update Stock (Single)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"quantity\": 50 }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/2/stock",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "2", "stock"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Update Stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"updates\": [ { \"variationId\": 2, \"quantity\": 10 } ] }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/bulk-stock",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "bulk-stock"]
+            }
+          }
+        },
+        {
+          "name": "Delete Variation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/2",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "2"]
+            }
+          }
+        },
+        {
+          "name": "Generate SKUs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"baseSku\": \"T-SHIRT\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/generate-skus",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "generate-skus"]
+            }
+          }
+        },
+        {
+          "name": "Generate Combinations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/generate-combinations",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "generate-combinations"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Create Variations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variations\": [\n    { \"sku\": \"bulk1\", \"price\": 10.99, \"stockQuantity\": 20, \"attributes\": [ { \"attributeId\": 1, \"valueId\": 2 } ] }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1/variations/bulk-create",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "products", "1", "variations", "bulk-create"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

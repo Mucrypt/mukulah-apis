@@ -1,5 +1,5 @@
 ﻿CREATE TABLE IF NOT EXISTS product_variations (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- Ensure this matches the foreign key reference
     product_id BIGINT UNSIGNED NOT NULL,
     sku VARCHAR(100) UNIQUE,
     price DECIMAL(12,2),

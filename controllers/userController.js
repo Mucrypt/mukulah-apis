@@ -16,7 +16,7 @@ const signToken = (user) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+      expiresIn: '24h', // Set token expiration to 24 hours
     }
   );
 };
@@ -53,7 +53,7 @@ const createSendToken = (user, statusCode, res) => {
 const userController = {
   register: async (req, res) => {
     try {
-      const { name, email, password, passwordConfirm } = req.body;
+      const { name, email, password, passwordConfirm, role = 'customer' } = req.body;
 
       if (password !== passwordConfirm) {
         return res.status(400).json({ status: 'fail', message: 'Passwords do not match' });
@@ -64,7 +64,13 @@ const userController = {
         return res.status(400).json({ status: 'fail', message: 'Email already in use' });
       }
 
-      const newUser = await User.create({ name, email, password, role: 'customer' });
+      // Validate role
+      const validRoles = ['customer', 'seller'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ status: 'fail', message: 'Invalid role specified' });
+      }
+
+      const newUser = await User.create({ name, email, password, role });
       createSendToken(newUser, 201, res);
     } catch (err) {
       console.error('Registration error:', err);

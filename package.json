@@ -8,14 +8,21 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seeder": "node seeder.js",
-    "migrate": "node migrate.js",
+   
     "setup": "npm run migrate && npm run seeder",
     "test:unit": "mocha tests/unit/**/*.test.js",
     "test:integration": "mocha tests/integration/**/*.test.js",
     "test": "npm run test:unit && npm run test:integration",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "cleanup": "node cleanupCategoryIndexes.js",
+    "migrate": "sequelize db:migrate",
+    "migrate:undo": "sequelize db:migrate:undo",
+    "migrate:create": "sequelize migration:generate --name",
+    "migrate:reset": "sequelize db:migrate:undo:all && sequelize db:migrate",
+    "seed": "sequelize db:seed:all",
+    "seed:undo": "sequelize db:seed:undo:all"
   },
   "keywords": [
     "ecommerce",
@@ -45,6 +52,10 @@
     "mysql2": "^3.14.0",
     "nodemailer": "^6.10.0",
     "redis": "^4.7.0",
+    "sequelize": "^6.37.7",
+    "stripe": "^18.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0",
     "xss-clean": "^0.1.4",
     "zod": "^3.22.4"
@@ -58,6 +69,7 @@
     "lint-staged": "^15.2.0",
     "nodemon": "^3.1.9",
     "prettier": "^3.2.5",
+    "sequelize-cli": "^6.6.2",
     "supertest": "^6.3.4"
   }
 }

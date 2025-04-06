@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const { testConnection } = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
+const testEmailRoute = require('./routes/testEmailRoute');
 
 // Import all route files
 const userRoutes = require('./routes/userRoutes');
@@ -21,12 +22,25 @@ const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes');
 const cartRoutes = require('./routes/CartRoutes');
 const orderRoutes = require('./routes/OrderRoutes');
 const checkoutRoutes = require('./routes/CheckoutRoutes');
+const sellersRoutes = require('./routes/sellersRoutes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
+
+
+
+// cookie parser is used to parse cookies in the request headers
+const cookieParser = require('cookie-parser');
 
 // Initialize Express app
 const app = express();
 
 // Security middleware
 app.use(helmet());
+
+app.use(cookieParser()); // Parse cookies from request headers
+
+// Ensure the `/api` prefix is used when mounting the route
+app.use('/api', testEmailRoute);
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -45,6 +59,13 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Compression
 app.use(compression());
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+// Serve static files from the public directory
+app.use('/api/admin-dashboard', require('./routes/adminDashboard'));
 
 // Request logging
 if (process.env.NODE_ENV === 'development') {
@@ -79,6 +100,8 @@ app.use('/api/product-relationships', productRelationshipRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/checkouts', checkoutRoutes);
+
+app.use('/api/sellers', sellersRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

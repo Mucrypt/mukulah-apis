@@ -1,120 +1,129 @@
-class Product {
-  constructor(pool) {
-    this.pool = pool;
+// backend/models/ProductModel.js
+const { sequelize } = require('../config/db');
+const Product = require('./entities/Product');
+const ProductImage = require('./entities/ProductImage'); // Import ProductImage
+const ProductCategory = require('./entities/ProductCategory'); // Import ProductCategory
+const ProductCollection = require('./entities/ProductCollection'); // Import ProductCollection
+const ProductAttribute = require('./entities/ProductAttribute'); // Import ProductAttribute
+const ProductAttributeValue = require('./entities/ProductAttributeValue'); // Import ProductAttributeValue
+const ProductVariation = require('./entities/ProductVariation'); // Import ProductVariation
+const VariationAttribute = require('./entities/VariationAttribute'); // Import VariationAttribute
+const ProductReview = require('./entities/ProductReview'); // Import ProductReview
+const ProductTag = require('./entities/ProductTag');
+const RelatedProduct = require('./entities/RelatedProduct'); // Import RelatedProduct
+const CrossSellProduct = require('./entities/CrossSellProduct'); // Import CrossSellProduct
+const UpSellProduct = require('./entities/UpSellProduct'); // Import UpSellProduct
+const Category = require('./entities/Category'); // Import Category
+const Collection = require('./entities/Collection'); // Import Collection
+const Attribute = require('./entities/Attribute'); // Import Attribute
+const AttributeValue = require('./entities/AttributeValue'); // Import AttributeValue
+const Brand = require('./entities/Brand'); // Import Brand
+
+class ProductModel {
+  constructor() {
+    this.Product = Product;
   }
 
   async create(productData) {
-    let connection;
+    const transaction = await sequelize.transaction();
     try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
+      // Validate required fields
+      if (!productData.name) throw new Error('Product name is required');
+      if (!productData.price || isNaN(productData.price))
+        throw new Error('Valid price is required');
+      if (!productData.sku) throw new Error('SKU is required');
 
-      const [result] = await connection.execute(
-        `INSERT INTO products (
-    name, slug, description, short_description, price, discount_price, cost_price,
-    sku, upc, ean, isbn, brand_id, stock_quantity, stock_status,
-    weight, length, width, height, min_order_quantity, status,
-    is_featured, is_bestseller, is_new, needs_shipping, tax_class,
-    meta_title, meta_description, meta_keywords
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          productData.name,
-          productData.slug,
-          productData.description,
-          productData.shortDescription || null,
-          productData.price,
-          productData.discountPrice || 0.0,
-          productData.costPrice || null,
-          productData.sku,
-          productData.upc || null,
-          productData.ean || null,
-          productData.isbn || null,
-          productData.brandId || null,
-          productData.stockQuantity || 0,
-          productData.stockStatus || 'in_stock',
-          productData.weight || null,
-          productData.length || null,
-          productData.width || null,
-          productData.height || null,
-          productData.minOrderQuantity || 1,
-          productData.status || 'draft',
-          productData.isFeatured ? 1 : 0,
-          productData.isBestseller ? 1 : 0,
-          productData.isNew ? 1 : 0,
-          productData.needsShipping !== false ? 1 : 0,
-          productData.taxClass || null,
-          productData.metaTitle || null,
-          productData.metaDescription || null,
-          productData.metaKeywords || null,
-        ]
+      // Validate stock status
+      const validStockStatuses = ['in_stock', 'out_of_stock', 'pre_order'];
+      if (productData.stockStatus && !validStockStatuses.includes(productData.stockStatus)) {
+        throw new Error(`Invalid stock status: ${productData.stockStatus}`);
+      }
+
+      // Create the product
+      const product = await this.Product.create(
+        {
+          name: productData.name,
+          slug: productData.slug,
+          description: productData.description,
+          short_description: productData.shortDescription || null,
+          price: productData.price,
+          discount_price: productData.discountPrice || null,
+          cost_price: productData.costPrice || null,
+          sku: productData.sku,
+          upc: productData.upc || null,
+          ean: productData.ean || null,
+          isbn: productData.isbn || null,
+          brand_id: productData.brandId || null,
+          stock_quantity: productData.stockQuantity || 0,
+          stock_status: productData.stockStatus || 'in_stock',
+          weight: productData.weight || null,
+          length: productData.length || null,
+          width: productData.width || null,
+          height: productData.height || null,
+          min_order_quantity: productData.minOrderQuantity || 1,
+          status: productData.status || 'draft',
+          is_featured: productData.isFeatured || false,
+          is_bestseller: productData.isBestseller || false,
+          is_new: productData.isNew || false,
+          needs_shipping: productData.needsShipping !== false,
+          tax_class: productData.taxClass || null,
+          meta_title: productData.metaTitle || null,
+          meta_description: productData.metaDescription || null,
+          meta_keywords: productData.metaKeywords || null,
+          seller_id: productData.sellerId || null,
+        },
+        { transaction }
       );
 
-      const productId = result.insertId;
-
+      // Add categories if provided
       if (productData.categories && productData.categories.length > 0) {
-        await this.addCategories(connection, productId, productData.categories);
+        await ProductCategory.bulkCreate(
+          productData.categories.map((categoryId) => ({
+            product_id: product.id,
+            category_id: categoryId,
+          })),
+          { transaction }
+        );
       }
 
+      // Add collections if provided
       if (productData.collections && productData.collections.length > 0) {
-        await this.addCollections(connection, productId, productData.collections);
+        await ProductCollection.bulkCreate(
+          productData.collections.map((collectionId) => ({
+            product_id: product.id,
+            collection_id: collectionId,
+          })),
+          { transaction }
+        );
       }
 
+      // Add attributes if provided
       if (productData.attributes && productData.attributes.length > 0) {
-        await this.addAttributes(productId, productData.attributes, connection);
+        for (const attribute of productData.attributes) {
+          const productAttribute = await ProductAttribute.create(
+            {
+              product_id: product.id,
+              attribute_id: attribute.attributeId,
+            },
+            { transaction }
+          );
+
+          await ProductAttributeValue.bulkCreate(
+            attribute.valueIds.map((valueId) => ({
+              product_attribute_id: productAttribute.id,
+              attribute_value_id: valueId,
+            })),
+            { transaction }
+          );
+        }
       }
 
-      await connection.commit();
-      return productId;
+      await transaction.commit();
+      return product.id;
     } catch (err) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       console.error('Error creating product:', err);
       throw err;
-    } finally {
-      if (connection) connection.release();
-    }
-  }
-
-  async addCategories(connection, productId, categories) {
-    const values = categories.map((catId) => [productId, catId]);
-    await connection.query('INSERT INTO product_categories (product_id, category_id) VALUES ?', [
-      values,
-    ]);
-  }
-
-  async addCollections(connection, productId, collections) {
-    const values = collections.map((colId) => [productId, colId]);
-    await connection.query('INSERT INTO product_collections (product_id, collection_id) VALUES ?', [
-      values,
-    ]);
-  }
-
-  async addAttributes(productId, attributes, connection) {
-    if (!Array.isArray(attributes)) {
-      throw new Error('Attributes must be an array');
-    }
-
-    for (const attribute of attributes) {
-      const { attributeId, valueIds } = attribute;
-
-      if (!attributeId || !Array.isArray(valueIds) || valueIds.length === 0) {
-        throw new Error(
-          'Invalid attribute format: Each attribute must have an attributeId and a non-empty array of valueIds'
-        );
-      }
-
-      const [result] = await connection.execute(
-        'INSERT INTO product_attributes (product_id, attribute_id) VALUES (?, ?)',
-        [productId, attributeId]
-      );
-
-      const productAttributeId = result.insertId;
-
-      for (const valueId of valueIds) {
-        await connection.execute(
-          'INSERT INTO product_attribute_values (product_attribute_id, attribute_value_id) VALUES (?, ?)',
-          [productAttributeId, valueId]
-        );
-      }
     }
   }
 
@@ -126,172 +135,251 @@ class Product {
       withAttributes = false,
       withVariations = false,
       withReviews = false,
+      withBrand = false,
     } = options;
 
-    const [rows] = await this.pool.execute('SELECT * FROM products WHERE id = ?', [id]);
-    if (rows.length === 0) return null;
-
-    const product = rows[0];
-    const promises = [];
-
-    if (options.withBrand && product.brand_id) {
-      const brandModel = new (require('./BrandModel'))(this.pool);
-      promises.push(
-        brandModel.findById(product.brand_id).then((brand) => {
-          product.brand = brand;
-        })
-      );
-    }
+    const include = [];
 
     if (withImages) {
-      promises.push(
-        this.getProductImages(id).then((images) => {
-          product.images = images;
-        })
-      );
+      include.push({
+        model: ProductImage,
+        as: 'images',
+        order: [['position', 'ASC']],
+      });
     }
 
     if (withCategories) {
-      promises.push(
-        this.getProductCategories(id).then((categories) => {
-          product.categories = categories;
-        })
-      );
+      include.push({
+        model: Category,
+        as: 'categories',
+        through: { attributes: [] }, // Hide join table attributes
+      });
     }
 
     if (withCollections) {
-      promises.push(
-        this.getProductCollections(id).then((collections) => {
-          product.collections = collections;
-        })
-      );
+      include.push({
+        model: Collection,
+        as: 'collections',
+        through: { attributes: [] },
+      });
     }
 
     if (withAttributes) {
-      promises.push(
-        this.getProductAttributes(id).then((attributes) => {
-          product.attributes = attributes;
-        })
-      );
+      include.push({
+        model: Attribute,
+        as: 'productAttributes', // Updated alias
+        through: { attributes: [] },
+        include: [
+          {
+            model: AttributeValue,
+            as: 'values',
+            through: {
+              model: ProductAttributeValue,
+              attributes: [],
+            },
+          },
+        ],
+      });
     }
 
     if (withVariations) {
-      promises.push(
-        this.getProductVariations(id).then((variations) => {
-          product.variations = variations;
-        })
-      );
+      include.push({
+        model: ProductVariation,
+        as: 'variations',
+        include: [
+          {
+            model: Attribute,
+            as: 'variationAttributesForProductVariation', // Updated alias
+            through: {
+              model: VariationAttribute,
+              attributes: [],
+            },
+            include: [
+              {
+                model: AttributeValue,
+                as: 'values',
+                through: {
+                  model: VariationAttribute,
+                  attributes: [],
+                },
+              },
+            ],
+          },
+        ],
+      });
     }
 
     if (withReviews) {
-      promises.push(
-        this.getProductReviews(id).then((reviews) => {
-          product.reviews = reviews;
-        })
-      );
+      include.push({
+        model: ProductReview,
+        as: 'reviews',
+        where: { is_approved: true },
+        required: false,
+      });
     }
 
-    await Promise.all(promises);
+    if (withBrand) {
+      include.push({
+        model: Brand,
+        as: 'brand',
+      });
+    }
+
+    const product = await this.Product.findByPk(id, {
+      include,
+      rejectOnEmpty: false,
+    });
+
+    if (!product) return null;
+
+    // For reviews, we need to manually calculate helpful counts
+    if (withReviews && product.reviews) {
+      for (const review of product.reviews) {
+        const helpfulCount = await sequelize.models.ReviewHelpfulness.count({
+          where: {
+            review_id: review.id,
+            is_helpful: true,
+          },
+        });
+
+        const notHelpfulCount = await sequelize.models.ReviewHelpfulness.count({
+          where: {
+            review_id: review.id,
+            is_helpful: false,
+          },
+        });
+
+        review.dataValues.helpful_count = helpfulCount;
+        review.dataValues.not_helpful_count = notHelpfulCount;
+      }
+    }
+
     return product;
   }
 
   async getProductImages(productId) {
-    const [rows] = await this.pool.execute(
-      'SELECT * FROM product_images WHERE product_id = ? ORDER BY position',
-      [productId]
-    );
-    return rows;
+    return await ProductImage.findAll({
+      where: { product_id: productId },
+      order: [['position', 'ASC']],
+    });
   }
 
   async getProductCategories(productId) {
-    const [rows] = await this.pool.execute(
-      `SELECT c.* FROM categories c
-       JOIN product_categories pc ON c.id = pc.category_id
-       WHERE pc.product_id = ?`,
-      [productId]
-    );
-    return rows;
+    return await Category.findAll({
+      include: [
+        {
+          model: ProductCategory,
+          where: { product_id: productId },
+          attributes: [],
+        },
+      ],
+    });
   }
 
   async getProductCollections(productId) {
-    const [rows] = await this.pool.execute(
-      `SELECT col.* FROM collections col
-       JOIN product_collections pc ON col.id = pc.collection_id
-       WHERE pc.product_id = ?`,
-      [productId]
-    );
-    return rows;
+    return await Collection.findAll({
+      include: [
+        {
+          model: ProductCollection,
+          where: { product_id: productId },
+          attributes: [],
+        },
+      ],
+    });
   }
 
   async getProductAttributes(productId) {
-    const [rows] = await this.pool.execute(
-      `SELECT 
-      a.id, a.name, a.slug, a.type,
-      GROUP_CONCAT(av.id) AS value_ids,
-      GROUP_CONCAT(av.value) AS attribute_values,
-      GROUP_CONCAT(av.slug) AS value_slugs,
-      GROUP_CONCAT(av.color_code) AS color_codes,
-      GROUP_CONCAT(av.image_url) AS image_urls
-    FROM product_attributes pa
-    JOIN attributes a ON pa.attribute_id = a.id
-    JOIN product_attribute_values pav ON pa.id = pav.product_attribute_id
-    JOIN attribute_values av ON pav.attribute_value_id = av.id
-    WHERE pa.product_id = ?
-    GROUP BY a.id`,
-      [productId]
-    );
+    const attributes = await Attribute.findAll({
+      include: [
+        {
+          model: ProductAttribute,
+          where: { product_id: productId },
+          attributes: [],
+        },
+        {
+          model: AttributeValue,
+          through: {
+            model: ProductAttributeValue,
+            attributes: [],
+          },
+        },
+      ],
+      group: ['Attribute.id', 'values.id'],
+    });
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      type: row.type,
-      values: row.value_ids.split(',').map((id, index) => ({
-        id: parseInt(id),
-        value: row.attribute_values.split(',')[index],
-        slug: row.value_slugs.split(',')[index],
-        colorCode: row.color_codes?.split(',')[index] || null,
-        imageUrl: row.image_urls?.split(',')[index] || null,
+    return attributes.map((attr) => ({
+      id: attr.id,
+      name: attr.name,
+      slug: attr.slug,
+      type: attr.type,
+      values: attr.values.map((val) => ({
+        id: val.id,
+        value: val.value,
+        slug: val.slug,
+        colorCode: val.color_code,
+        imageUrl: val.image_url,
       })),
     }));
   }
 
   async getProductVariations(productId) {
-    const [rows] = await this.pool.execute(
-      `SELECT v.*, 
-        GROUP_CONCAT(CONCAT(a.name, ':', av.value)) AS variation_attributes
-      FROM product_variations v
-      LEFT JOIN variation_attributes va ON v.id = va.variation_id
-      LEFT JOIN attributes a ON va.attribute_id = a.id
-      LEFT JOIN attribute_values av ON va.attribute_value_id = av.id
-      WHERE v.product_id = ?
-      GROUP BY v.id`,
-      [productId]
-    );
+    const variations = await ProductVariation.findAll({
+      where: { product_id: productId },
+      include: [
+        {
+          model: Attribute,
+          as: 'variationAttributesForProductVariation', // Updated alias
+          through: { attributes: [] },
+          include: [
+            {
+              model: AttributeValue,
+              as: 'values',
+              through: { attributes: [] },
+            },
+          ],
+        },
+      ],
+    });
 
-    return rows.map((row) => ({
-      ...row,
-      attributes: row.variation_attributes
-        ? row.variation_attributes.split(',').map((attr) => {
-            const [name, value] = attr.split(':');
-            return { name, value };
-          })
-        : [],
+    return variations.map((variation) => ({
+      ...variation.get({ plain: true }),
+      attributes: variation.attributes.map((attr) => ({
+        name: attr.name,
+        value: attr.values[0].value, // Assuming one value per attribute
+      })),
     }));
   }
 
   async getProductReviews(productId, { approvedOnly = true } = {}) {
-    const whereClause = approvedOnly ? 'AND is_approved = TRUE' : '';
-    const [rows] = await this.pool.execute(
-      `SELECT r.*, 
-        (SELECT COUNT(*) FROM review_helpfulness rh WHERE rh.review_id = r.id AND rh.is_helpful = TRUE) AS helpful_count,
-        (SELECT COUNT(*) FROM review_helpfulness rh WHERE rh.review_id = r.id AND rh.is_helpful = FALSE) AS not_helpful_count
-      FROM product_reviews r
-      WHERE r.product_id = ? ${whereClause}
-      ORDER BY r.created_at DESC`,
-      [productId]
-    );
-    return rows;
+    const where = { product_id: productId };
+    if (approvedOnly) where.is_approved = true;
+
+    const reviews = await ProductReview.findAll({
+      where,
+      order: [['created_at', 'DESC']],
+    });
+
+    // Add helpful counts
+    for (const review of reviews) {
+      const helpfulCount = await sequelize.models.ReviewHelpfulness.count({
+        where: {
+          review_id: review.id,
+          is_helpful: true,
+        },
+      });
+
+      const notHelpfulCount = await sequelize.models.ReviewHelpfulness.count({
+        where: {
+          review_id: review.id,
+          is_helpful: false,
+        },
+      });
+
+      review.dataValues.helpful_count = helpfulCount;
+      review.dataValues.not_helpful_count = notHelpfulCount;
+    }
+
+    return reviews;
   }
 
   async search({
@@ -305,250 +393,209 @@ class Product {
     sortOrder = 'DESC',
     limit = 20,
     offset = 0,
+    sellerId,
   }) {
-    try {
-      let whereClauses = ['p.status = "published"'];
-      const params = [];
+    const where = { status: 'published' };
+    const include = [];
+    const order = [[sortBy, sortOrder]];
 
-      if (query) {
-        whereClauses.push('(p.name LIKE ? OR p.description LIKE ? OR p.sku = ?)');
-        params.push(`%${query}%`, `%${query}%`, query);
-      }
-
-      if (categoryId) {
-        whereClauses.push('pc.category_id = ?');
-        params.push(categoryId);
-      }
-
-      if (collectionId) {
-        whereClauses.push('pcol.collection_id = ?');
-        params.push(collectionId);
-      }
-
-      if (brandId) {
-        whereClauses.push('p.brand_id = ?');
-        params.push(brandId);
-      }
-
-      if (minPrice) {
-        whereClauses.push('COALESCE(p.discount_price, p.price) >= ?');
-        params.push(minPrice);
-      }
-
-      if (maxPrice) {
-        whereClauses.push('COALESCE(p.discount_price, p.price) <= ?');
-        params.push(maxPrice);
-      }
-
-      let joinClause = '';
-      if (categoryId) {
-        joinClause += 'JOIN product_categories pc ON p.id = pc.product_id ';
-      }
-      if (collectionId) {
-        joinClause += 'JOIN product_collections pcol ON p.id = pcol.product_id ';
-      }
-
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-      const validSortColumns = ['name', 'price', 'created_at', 'average_rating', 'sales_count'];
-      const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
-      const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-      const limitNum = parseInt(limit, 10);
-      const offsetNum = parseInt(offset, 10);
-
-      if (isNaN(limitNum) || isNaN(offsetNum)) {
-        throw new Error('Invalid limit or offset value');
-      }
-
-      // Make sure this comes *after* whereClause is defined
-      // Make sure this comes *after* whereClause is defined
-      const sqlQuery = `SELECT DISTINCT p.* FROM products p
-  ${joinClause}
-  ${whereClause}
-  ORDER BY ${sortColumn} ${sortDirection}
-  LIMIT ${limitNum} OFFSET ${offsetNum}`;
-
-      console.log('Executing SQL:', sqlQuery);
-      console.log('With params:', params);
-
-      const [products] = await this.pool.execute(sqlQuery, params);
-
-      const countSql = `SELECT COUNT(DISTINCT p.id) as total FROM products p
-        ${joinClause}
-        ${whereClause}`;
-
-      const [countResult] = await this.pool.execute(countSql, params);
-
-      return {
-        products,
-        total: countResult[0].total,
-        limit: limitNum,
-        offset: offsetNum,
-      };
-    } catch (err) {
-      console.error('Error in product search:', err);
-      throw err;
+    if (query) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${query}%` } },
+        { description: { [Op.like]: `%${query}%` } },
+        { sku: query },
+      ];
     }
+
+    if (categoryId) {
+      include.push({
+        model: ProductCategory,
+        where: { category_id: categoryId },
+        attributes: [],
+      });
+    }
+
+    if (collectionId) {
+      include.push({
+        model: ProductCollection,
+        where: { collection_id: collectionId },
+        attributes: [],
+      });
+    }
+
+    if (brandId) {
+      where.brand_id = brandId;
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price[Op.gte] = minPrice;
+      if (maxPrice) where.price[Op.lte] = maxPrice;
+    }
+
+    if (sellerId) {
+      where.seller_id = sellerId;
+    }
+
+    const { count, rows } = await this.Product.findAndCountAll({
+      where,
+      include,
+      order,
+      limit,
+      offset,
+      distinct: true, // Important for correct count with joins
+    });
+
+    return {
+      products: rows,
+      total: count,
+      limit,
+      offset,
+    };
   }
 
   async update(id, updates) {
-    let connection;
+    const transaction = await sequelize.transaction();
     try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
+      // Update product fields
+      const [affectedRows] = await this.Product.update(updates, {
+        where: { id },
+        transaction,
+      });
 
-      const fields = [];
-      const params = [];
-
-      // Dynamically build the update query for all fields
-      const updatableFields = [
-        'name',
-        'slug',
-        'description',
-        'short_description',
-        'price',
-        'discount_price',
-        'cost_price',
-        'sku',
-        'upc',
-        'ean',
-        'isbn',
-        'brand_id',
-        'stock_quantity',
-        'stock_status',
-        'weight',
-        'length',
-        'width',
-        'height',
-        'min_order_quantity',
-        'status',
-        'is_featured',
-        'is_bestseller',
-        'is_new',
-        'needs_shipping',
-        'tax_class',
-        'views_count',
-        'sales_count',
-        'wishlist_count',
-        'rating_total',
-        'rating_count',
-        'average_rating',
-        'meta_title',
-        'meta_description',
-        'meta_keywords',
-        'created_at',
-        'updated_at',
-      ];
-
-      for (const field of updatableFields) {
-        if (updates[field] !== undefined) {
-          fields.push(`${field} = ?`);
-          params.push(updates[field]);
-        }
+      if (affectedRows === 0) {
+        throw new Error('No product found with that ID');
       }
 
-      if (fields.length === 0) {
-        throw new Error(
-          'No valid fields provided for update. Ensure you are passing valid fields.'
-        );
-      }
-
-      params.push(id);
-      const query = `UPDATE products SET ${fields.join(', ')} WHERE id = ?`;
-
-      const [result] = await connection.execute(query, params);
-
+      // Update categories if provided
       if (updates.categories !== undefined) {
-        await connection.execute('DELETE FROM product_categories WHERE product_id = ?', [id]);
+        await ProductCategory.destroy({
+          where: { product_id: id },
+          transaction,
+        });
+
         if (updates.categories.length > 0) {
-          await this.addCategories(connection, id, updates.categories);
+          await ProductCategory.bulkCreate(
+            updates.categories.map((categoryId) => ({
+              product_id: id,
+              category_id: categoryId,
+            })),
+            { transaction }
+          );
         }
       }
 
+      // Update collections if provided
       if (updates.collections !== undefined) {
-        await connection.execute('DELETE FROM product_collections WHERE product_id = ?', [id]);
+        await ProductCollection.destroy({
+          where: { product_id: id },
+          transaction,
+        });
+
         if (updates.collections.length > 0) {
-          await this.addCollections(connection, id, updates.collections);
+          await ProductCollection.bulkCreate(
+            updates.collections.map((collectionId) => ({
+              product_id: id,
+              collection_id: collectionId,
+            })),
+            { transaction }
+          );
         }
       }
 
+      // Update attributes if provided
       if (updates.attributes !== undefined) {
-        await connection.execute('DELETE pa FROM product_attributes pa WHERE pa.product_id = ?', [
-          id,
-        ]);
+        // First delete all existing attribute relationships
+        await ProductAttribute.destroy({
+          where: { product_id: id },
+          transaction,
+        });
+
         if (updates.attributes.length > 0) {
-          await this.addAttributes(id, updates.attributes, connection);
+          for (const attribute of updates.attributes) {
+            const productAttribute = await ProductAttribute.create(
+              {
+                product_id: id,
+                attribute_id: attribute.attributeId,
+              },
+              { transaction }
+            );
+
+            await ProductAttributeValue.bulkCreate(
+              attribute.valueIds.map((valueId) => ({
+                product_attribute_id: productAttribute.id,
+                attribute_value_id: valueId,
+              })),
+              { transaction }
+            );
+          }
         }
       }
 
-      await connection.commit();
-      return result.affectedRows;
+      await transaction.commit();
+      return affectedRows;
     } catch (err) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw err;
-    } finally {
-      if (connection) connection.release();
     }
   }
 
   async delete(id) {
-    let connection;
+    const transaction = await sequelize.transaction();
     try {
-      connection = await this.pool.getConnection();
-      await connection.beginTransaction();
+      // Delete all related records first
+      await Promise.all([
+        ProductCategory.destroy({ where: { product_id: id }, transaction }),
+        ProductCollection.destroy({ where: { product_id: id }, transaction }),
+        ProductAttribute.destroy({ where: { product_id: id }, transaction }),
+        ProductImage.destroy({ where: { product_id: id }, transaction }),
+        ProductTag.destroy({ where: { product_id: id }, transaction }),
+        RelatedProduct.destroy({
+          where: {
+            [Op.or]: [{ product_id: id }, { related_product_id: id }],
+          },
+          transaction,
+        }),
+        CrossSellProduct.destroy({
+          where: {
+            [Op.or]: [{ product_id: id }, { cross_sell_product_id: id }],
+          },
+          transaction,
+        }),
+        UpSellProduct.destroy({
+          where: {
+            [Op.or]: [{ product_id: id }, { up_sell_product_id: id }],
+          },
+          transaction,
+        }),
+        ProductVariation.destroy({ where: { product_id: id }, transaction }),
+      ]);
 
-      await connection.execute('DELETE FROM product_categories WHERE product_id = ?', [id]);
-      await connection.execute('DELETE FROM product_collections WHERE product_id = ?', [id]);
-      await connection.execute(
-        'DELETE pav FROM product_attribute_values pav JOIN product_attributes pa ON pav.product_attribute_id = pa.id WHERE pa.product_id = ?',
-        [id]
-      );
-      await connection.execute('DELETE FROM product_attributes WHERE product_id = ?', [id]);
-      await connection.execute('DELETE FROM product_images WHERE product_id = ?', [id]);
-      await connection.execute('DELETE FROM product_videos WHERE product_id = ?', [id]);
-      await connection.execute('DELETE FROM product_tags WHERE product_id = ?', [id]);
-      await connection.execute(
-        'DELETE FROM related_products WHERE product_id = ? OR related_product_id = ?',
-        [id, id]
-      );
-      await connection.execute(
-        'DELETE FROM cross_sell_products WHERE product_id = ? OR cross_sell_product_id = ?',
-        [id, id]
-      );
-      await connection.execute(
-        'DELETE FROM up_sell_products WHERE product_id = ? OR up_sell_product_id = ?',
-        [id, id]
-      );
-      await connection.execute(
-        'DELETE va FROM variation_attributes va JOIN product_variations pv ON va.variation_id = pv.id WHERE pv.product_id = ?',
-        [id]
-      );
-      await connection.execute('DELETE FROM product_variations WHERE product_id = ?', [id]);
+      // Finally delete the product
+      const deletedRows = await this.Product.destroy({
+        where: { id },
+        transaction,
+      });
 
-      const [result] = await connection.execute('DELETE FROM products WHERE id = ?', [id]);
-
-      await connection.commit();
-      return result.affectedRows;
+      await transaction.commit();
+      return deletedRows;
     } catch (err) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw err;
-    } finally {
-      if (connection) connection.release();
     }
   }
 
   async incrementViews(productId) {
-    await this.pool.execute('UPDATE products SET views_count = views_count + 1 WHERE id = ?', [
-      productId,
-    ]);
+    await this.Product.increment('views_count', {
+      where: { id: productId },
+    });
   }
 
   async incrementSales(productId, quantity = 1) {
-    await this.pool.execute(
-      'UPDATE products SET sales_count = sales_count + ?, stock_quantity = stock_quantity - ? WHERE id = ?',
-      [quantity, quantity, productId]
-    );
+    await this.Product.increment(['sales_count', quantity], ['stock_quantity', -quantity], {
+      where: { id: productId },
+    });
   }
 }
 
-module.exports = Product;
+module.exports = ProductModel;
