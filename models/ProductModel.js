@@ -19,6 +19,9 @@ const Attribute = require('./entities/Attribute'); // Import Attribute
 const AttributeValue = require('./entities/AttributeValue'); // Import AttributeValue
 const Brand = require('./entities/Brand'); // Import Brand
 
+
+
+
 class ProductModel {
   constructor() {
     this.Product = Product;
@@ -76,13 +79,18 @@ class ProductModel {
       );
 
       // Add categories if provided
+      // In the create method, modify the ProductCategory.bulkCreate section:
       if (productData.categories && productData.categories.length > 0) {
         await ProductCategory.bulkCreate(
           productData.categories.map((categoryId) => ({
             product_id: product.id,
             category_id: categoryId,
           })),
-          { transaction }
+          {
+            transaction,
+            fields: ['product_id', 'category_id'], // Explicitly list only these fields
+            ignoreDuplicates: true, // Optional: prevent duplicates
+          }
         );
       }
 
@@ -98,8 +106,15 @@ class ProductModel {
       }
 
       // Add attributes if provided
+      // Add attributes if provided
       if (productData.attributes && productData.attributes.length > 0) {
         for (const attribute of productData.attributes) {
+          // Verify attribute exists
+          const attrExists = await Attribute.findByPk(attribute.attributeId, { transaction });
+          if (!attrExists) {
+            throw new Error(`Attribute with ID ${attribute.attributeId} not found`);
+          }
+
           const productAttribute = await ProductAttribute.create(
             {
               product_id: product.id,
@@ -108,13 +123,25 @@ class ProductModel {
             { transaction }
           );
 
-          await ProductAttributeValue.bulkCreate(
-            attribute.valueIds.map((valueId) => ({
-              product_attribute_id: productAttribute.id,
-              attribute_value_id: valueId,
-            })),
-            { transaction }
-          );
+          // Verify attribute values exist
+          if (attribute.valueIds && attribute.valueIds.length > 0) {
+            const valuesExist = await AttributeValue.findAll({
+              where: { id: attribute.valueIds },
+              transaction,
+            });
+
+            if (valuesExist.length !== attribute.valueIds.length) {
+              throw new Error('One or more attribute values not found');
+            }
+
+            await ProductAttributeValue.bulkCreate(
+              attribute.valueIds.map((valueId) => ({
+                product_attribute_id: productAttribute.id,
+                attribute_value_id: valueId,
+              })),
+              { transaction }
+            );
+          }
         }
       }
 
@@ -128,135 +155,153 @@ class ProductModel {
   }
 
   async findById(id, options = {}) {
-    const {
-      withImages = false,
-      withCategories = false,
-      withCollections = false,
-      withAttributes = false,
-      withVariations = false,
-      withReviews = false,
-      withBrand = false,
-    } = options;
+    try {
+      const {
+        withImages = false,
+        withCategories = false,
+        withCollections = false,
+        withAttributes = false,
+        withVariations = false,
+        withReviews = false,
+        withBrand = false,
+      } = options;
 
-    const include = [];
+      // Build include array based on options
+      const include = [];
 
-    if (withImages) {
-      include.push({
-        model: ProductImage,
-        as: 'images',
-        order: [['position', 'ASC']],
-      });
-    }
-
-    if (withCategories) {
-      include.push({
-        model: Category,
-        as: 'categories',
-        through: { attributes: [] }, // Hide join table attributes
-      });
-    }
-
-    if (withCollections) {
-      include.push({
-        model: Collection,
-        as: 'collections',
-        through: { attributes: [] },
-      });
-    }
-
-    if (withAttributes) {
-      include.push({
-        model: Attribute,
-        as: 'productAttributes', // Updated alias
-        through: { attributes: [] },
-        include: [
-          {
-            model: AttributeValue,
-            as: 'values',
-            through: {
-              model: ProductAttributeValue,
-              attributes: [],
-            },
-          },
-        ],
-      });
-    }
-
-    if (withVariations) {
-      include.push({
-        model: ProductVariation,
-        as: 'variations',
-        include: [
-          {
-            model: Attribute,
-            as: 'variationAttributesForProductVariation', // Updated alias
-            through: {
-              model: VariationAttribute,
-              attributes: [],
-            },
-            include: [
-              {
-                model: AttributeValue,
-                as: 'values',
-                through: {
-                  model: VariationAttribute,
-                  attributes: [],
-                },
-              },
-            ],
-          },
-        ],
-      });
-    }
-
-    if (withReviews) {
-      include.push({
-        model: ProductReview,
-        as: 'reviews',
-        where: { is_approved: true },
-        required: false,
-      });
-    }
-
-    if (withBrand) {
-      include.push({
-        model: Brand,
-        as: 'brand',
-      });
-    }
-
-    const product = await this.Product.findByPk(id, {
-      include,
-      rejectOnEmpty: false,
-    });
-
-    if (!product) return null;
-
-    // For reviews, we need to manually calculate helpful counts
-    if (withReviews && product.reviews) {
-      for (const review of product.reviews) {
-        const helpfulCount = await sequelize.models.ReviewHelpfulness.count({
-          where: {
-            review_id: review.id,
-            is_helpful: true,
-          },
+      if (withImages) {
+        include.push({
+          model: ProductImage,
+          as: 'images',
+          attributes: ['id', 'image_url', 'is_default', 'position'],
         });
-
-        const notHelpfulCount = await sequelize.models.ReviewHelpfulness.count({
-          where: {
-            review_id: review.id,
-            is_helpful: false,
-          },
-        });
-
-        review.dataValues.helpful_count = helpfulCount;
-        review.dataValues.not_helpful_count = notHelpfulCount;
       }
+
+      if (withCategories) {
+        include.push({
+          model: Category,
+          as: 'categories',
+          through: { attributes: [] },
+          attributes: ['id', 'name', 'slug', 'description', 'image_url'],
+        });
+      }
+
+      if (withCollections) {
+        include.push({
+          model: Collection,
+          as: 'collections',
+          through: { attributes: [] },
+          attributes: ['id', 'name', 'slug', 'description', 'image_url'],
+        });
+      }
+
+      if (withBrand) {
+        include.push({
+          model: Brand,
+          as: 'brand',
+          attributes: ['id', 'name', 'slug', 'logo_url', 'website'],
+        });
+      }
+
+      if (withAttributes) {
+        include.push({
+          model: Attribute,
+          as: 'productAttributes',
+          through: { attributes: [] },
+          attributes: ['id', 'name', 'slug', 'type', 'is_filterable', 'is_visible', 'is_variation'],
+          include: [
+            {
+              model: AttributeValue,
+              as: 'values',
+              through: {
+                model: ProductAttributeValue,
+                attributes: [],
+              },
+              attributes: ['id', 'value', 'slug', 'color_code', 'image_url'],
+            },
+          ],
+        });
+      }
+
+      if (withVariations) {
+        include.push({
+          model: ProductVariation,
+          as: 'variations',
+          attributes: [
+            'id',
+            'sku',
+            'price',
+            'discount_price',
+            'stock_quantity',
+            'image_id',
+            'is_default',
+          ],
+          include: [
+            {
+              model: Attribute,
+              as: 'attributes',
+              through: {
+                model: VariationAttribute,
+                attributes: [],
+              },
+              attributes: ['id', 'name', 'slug'],
+            },
+            {
+              model: AttributeValue,
+              as: 'attributeValues',
+              through: {
+                model: VariationAttribute,
+                attributes: [],
+              },
+              attributes: ['id', 'value', 'slug', 'color_code', 'image_url'],
+            },
+            {
+              model: ProductImage,
+              as: 'image',
+              attributes: ['id', 'image_url'],
+            },
+          ],
+        });
+      }
+
+      if (withReviews) {
+        include.push({
+          model: ProductReview,
+          as: 'reviews',
+          where: { is_approved: true },
+          required: false,
+          attributes: ['id', 'rating', 'title', 'comment', 'created_at', 'user_id'],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['id', 'name', 'avatar_url'],
+            },
+          ],
+        });
+      }
+
+      const product = await this.Product.findByPk(id, {
+        include,
+        rejectOnEmpty: false,
+      });
+
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      // Calculate average rating if reviews are included
+      if (withReviews && product.reviews && product.reviews.length > 0) {
+        const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+        product.dataValues.averageRating = (totalRating / product.reviews.length).toFixed(1);
+      }
+
+      return product;
+    } catch (error) {
+      console.error('Error in findById:', error);
+      throw error;
     }
-
-    return product;
   }
-
   async getProductImages(productId) {
     return await ProductImage.findAll({
       where: { product_id: productId },
@@ -286,6 +331,31 @@ class ProductModel {
         },
       ],
     });
+  }
+
+  // Add to ProductModel.js
+  async addProductAttributes(productId, attributes, transaction) {
+    if (!attributes || !attributes.length) return;
+
+    for (const attribute of attributes) {
+      const productAttribute = await ProductAttribute.create(
+        {
+          product_id: productId,
+          attribute_id: attribute.attributeId,
+        },
+        { transaction }
+      );
+
+      if (attribute.valueIds && attribute.valueIds.length) {
+        await ProductAttributeValue.bulkCreate(
+          attribute.valueIds.map((valueId) => ({
+            product_attribute_id: productAttribute.id,
+            attribute_value_id: valueId,
+          })),
+          { transaction }
+        );
+      }
+    }
   }
 
   async getProductAttributes(productId) {
@@ -328,13 +398,12 @@ class ProductModel {
       include: [
         {
           model: Attribute,
-          as: 'variationAttributesForProductVariation', // Updated alias
+          as: 'attributes',
           through: { attributes: [] },
           include: [
             {
               model: AttributeValue,
               as: 'values',
-              through: { attributes: [] },
             },
           ],
         },
@@ -344,8 +413,15 @@ class ProductModel {
     return variations.map((variation) => ({
       ...variation.get({ plain: true }),
       attributes: variation.attributes.map((attr) => ({
+        id: attr.id,
         name: attr.name,
-        value: attr.values[0].value, // Assuming one value per attribute
+        values: attr.values.map((val) => ({
+          id: val.id,
+          value: val.value,
+          slug: val.slug,
+          colorCode: val.color_code,
+          imageUrl: val.image_url,
+        })),
       })),
     }));
   }

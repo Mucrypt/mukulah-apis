@@ -1,132 +1,136 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
-require('dotenv').config();
+const { Op } = require('sequelize');
+const User = require('../models/entities/User');
+const Seller = require('../models/entities/Seller');
+const { AppError } = require('../utils/appError');
+
+// Extract JWT from Authorization, cookies, or query string
+const extractToken = (req) => {
+  if (req.headers.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') return parts[1];
+  }
+  return req.cookies?.jwt || req.query?.token || null;
+};
+
+// Verify JWT and return decoded payload
+const verifyToken = async (token) => {
+  if (!token) throw AppError.unauthorized('No authentication token provided');
+  if (token.split('.').length !== 3) throw AppError.unauthorized('Invalid token format');
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'],
+      clockTolerance: 15,
+    });
+
+    if (!decoded.id || !decoded.role) {
+      throw AppError.unauthorized('Invalid token payload');
+    }
+
+    return decoded;
+  } catch (err) {
+    console.error('[JWT VERIFY ERROR]', err);
+    if (err.name === 'TokenExpiredError') {
+      throw AppError.unauthorized('Token expired. Please log in again');
+    }
+    if (err.name === 'JsonWebTokenError') {
+      throw AppError.unauthorized('Invalid authentication token');
+    }
+
+    throw AppError.unauthorized('Authentication failed');
+  }
+};
 
 const auth = {
   authenticate: async (req, res, next) => {
     try {
-      // Debugging log: Check incoming request
-      console.log(`[AUTH] Incoming request: ${req.method} ${req.path}`);
+      console.log(`[AUTH] ${req.method} ${req.originalUrl}`);
 
-      // Skip authentication for public routes
-      const publicRoutes = [
-        { method: 'GET', path: /^\/api\/products(?:\/|$)/ },
-        { method: 'GET', path: /^\/api\/products\/\d+/ },
-        { method: 'PATCH', path: /^\/api\/products\/\d+\/views/ },
-        // Add other public routes...
-      ];
+      const token = extractToken(req);
+      console.log('[AUTH] Token:', token ? token.substring(0, 10) + '...' : 'None');
 
-      const isPublic = publicRoutes.some(
-        (route) => req.method === route.method && route.path.test(req.path)
-      );
+      const decoded = await verifyToken(token);
+      console.log('[AUTH] Decoded:', decoded);
 
-      if (isPublic) return next();
+      let currentUser = null;
 
-      // Token extraction with multiple sources
-      const token =
-        (req.headers.authorization?.startsWith('Bearer') &&
-          req.headers.authorization.split(' ')[1]) ||
-        req.cookies?.jwt ||
-        req.query?.token;
-
-      // Debugging log: Check extracted token
-      console.log(`[AUTH] Extracted token: ${token}`);
-
-      if (!token) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'Authentication required',
-        });
-      }
-
-      // Verify token with enhanced options
-      const decoded = await new Promise((resolve, reject) => {
-        jwt.verify(
-          token,
-          process.env.JWT_SECRET,
-          {
-            algorithms: ['HS256'],
-            ignoreExpiration: false, // Ensure expiration is respected
+      if (decoded.role === 'seller') {
+        currentUser = await Seller.findOne({
+          where: {
+            id: decoded.id,
+            status: 'approved', // ✅ seller must be approved
           },
-          (err, decoded) => {
-            if (err) reject(err);
-            else resolve(decoded);
+        });
+
+        if (!currentUser) {
+          throw AppError.unauthorized('Seller not found or not approved');
+        }
+      } else {
+        currentUser = await User.findOne({
+          where: {
+            id: decoded.id,
+            [Op.or]: [{ active: true }, { active: { [Op.is]: null } }],
+          },
+        });
+
+        if (!currentUser) {
+          throw AppError.unauthorized('User not found or inactive');
+        }
+
+        if (currentUser.password_changed_at) {
+          const changedAt = Math.floor(currentUser.password_changed_at.getTime() / 1000);
+          if (decoded.iat && changedAt > decoded.iat) {
+            throw AppError.unauthorized('Password recently changed. Please log in again');
           }
-        );
-      });
-
-      // Debugging log: Check decoded token
-      console.log(`[AUTH] Decoded token:`, decoded);
-
-      // Check user exists and is active
-      const currentUser = await User.findById(decoded.id);
-      if (!currentUser || !currentUser.active) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'User account is disabled or does not exist',
-        });
+        }
       }
 
-      // Debugging log: Check current user
-      console.log(`[AUTH] Current user:`, currentUser);
-
-      // Password changed check
-      if (User.changedPasswordAfter(decoded.iat, currentUser.password_changed_at)) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'Password was changed. Please log in again.',
-        });
-      }
-
-      // Attach user to request
       req.user = {
         id: currentUser.id,
-        role: currentUser.role,
+        role: decoded.role,
         email: currentUser.email,
-        // Add other necessary fields
+        name: currentUser.name || currentUser.business_name,
       };
 
+      console.log(`[AUTH] Authenticated as ${req.user.role} (${req.user.email})`);
       next();
-    } catch (err) {
-      // Enhanced error handling
-      console.error(`[AUTH] Error:`, err);
-
-      let message = 'Authentication failed';
-      if (err.name === 'TokenExpiredError') {
-        message = 'Session expired. Please log in again.';
-      } else if (err.name === 'JsonWebTokenError') {
-        message = 'Invalid authentication token';
-      }
-
-      res.status(401).json({
-        status: 'fail',
-        message,
-        suggestion: 'Please log in to get a new token',
+    } catch (error) {
+      console.error('[AUTH ERROR]', {
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       });
+      next(error);
     }
   },
 
-  authorize: (...roles) => {
+  authorize: (...allowedRoles) => {
     return (req, res, next) => {
-      if (!req.user) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'Authentication required',
-        });
-      }
+      try {
+        if (!req.user) {
+          throw AppError.unauthorized('Authentication required');
+        }
 
-      if (!roles.includes(req.user.role)) {
-        return res.status(403).json({
-          status: 'fail',
-          message: 'Insufficient permissions',
-          requiredRoles: roles,
-          yourRole: req.user.role,
-          suggestion: 'Contact administrator for access',
-        });
-      }
+        if (!allowedRoles.includes(req.user.role)) {
+          throw AppError.forbidden('Insufficient permissions', {
+            requiredRoles: allowedRoles,
+            yourRole: req.user.role,
+          });
+        }
 
-      next();
+        console.log(`[AUTH] Authorized ${req.user.role} for ${allowedRoles.join(', ')}`);
+        next();
+      } catch (error) {
+        console.error('[AUTHORIZATION ERROR]', error);
+        next(error);
+      }
     };
   },
 };
+
+// Shortcut role-based access
+auth.onlySeller = () => auth.authorize('seller');
+auth.onlyAdmin = () => auth.authorize('admin', 'superAdmin');
+auth.onlyCustomer = () => auth.authorize('customer');
+
 module.exports = auth;

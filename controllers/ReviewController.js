@@ -1,88 +1,93 @@
-const { pool } = require('../config/db');
+const ProductReview = require('../models/entities/ProductReview');
 const AppError = require('../utils/appError');
+const { Op } = require('sequelize');
 
 const reviewController = {
-  // Create review
   createReview: async (req, res, next) => {
     try {
-      const { rating, title, comment } = req.body;
-      const review = new (require('../models/ReviewModel'))(pool);
+      const { rating, title, comment, verifiedPurchase = false } = req.body;
 
-      const reviewId = await review.create({
-        productId: req.params.productId,
-        customerId: req.user.id,
+      const newReview = await ProductReview.create({
+        product_id: req.params.productId,
+        customer_id: req.user.id,
         rating,
         title,
         comment,
-        verifiedPurchase: req.body.verifiedPurchase || false,
+        verified_purchase: verifiedPurchase,
       });
 
       res.status(201).json({
         status: 'success',
         data: {
-          reviewId,
+          review: newReview,
         },
       });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 
-  // Get product reviews
   getProductReviews: async (req, res, next) => {
     try {
-      const { approved, page = 1, limit = 10 } = req.query;
-      const review = new (require('../models/ReviewModel'))(pool);
+      const { approved = 'true', page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
 
-      const reviews = await review.findByProduct(req.params.productId, {
-        approvedOnly: approved !== 'false',
-        page: parseInt(page),
+      const where = {
+        product_id: req.params.productId,
+      };
+
+      if (approved === 'true') {
+        where.is_approved = true;
+      }
+
+      const { rows, count } = await ProductReview.findAndCountAll({
+        where,
         limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['created_at', 'DESC']],
       });
 
       res.status(200).json({
         status: 'success',
-        results: reviews.reviews.length,
-        total: reviews.total,
-        page: reviews.page,
-        pages: Math.ceil(reviews.total / reviews.limit),
+        results: rows.length,
+        total: count,
+        page: parseInt(page),
+        pages: Math.ceil(count / limit),
         data: {
-          reviews: reviews.reviews,
+          reviews: rows,
         },
       });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 
-  // Get single review
   getReview: async (req, res, next) => {
     try {
-      const review = new (require('../models/ReviewModel'))(pool);
-      const reviewData = await review.findById(req.params.reviewId);
-
-      if (!reviewData) {
+      const review = await ProductReview.findByPk(req.params.reviewId);
+      if (!review) {
         return next(new AppError('No review found with that ID', 404));
       }
 
       res.status(200).json({
         status: 'success',
         data: {
-          review: reviewData,
+          review,
         },
       });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 
-  // Approve review
   approveReview: async (req, res, next) => {
     try {
-      const review = new (require('../models/ReviewModel'))(pool);
-      const updatedRows = await review.approve(req.params.reviewId);
+      const [updated] = await ProductReview.update(
+        { is_approved: true },
+        { where: { id: req.params.reviewId } }
+      );
 
-      if (updatedRows === 0) {
+      if (updated === 0) {
         return next(new AppError('No review found with that ID', 404));
       }
 
@@ -91,79 +96,46 @@ const reviewController = {
         message: 'Review approved',
       });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 
-  // Mark review as helpful
   markHelpful: async (req, res, next) => {
     try {
-      const { helpful } = req.query;
-      const review = new (require('../models/ReviewModel'))(pool);
-      await review.markHelpful(req.params.reviewId, req.user.id, helpful !== 'false');
+      const helpful = req.query.helpful !== 'false';
+      const review = await ProductReview.findByPk(req.params.reviewId);
+      if (!review) return next(new AppError('Review not found', 404));
+
+      await review.increment(helpful ? 'helpful_count' : 'not_helpful_count');
 
       res.status(200).json({
         status: 'success',
-        message: 'Review marked as helpful',
+        message: `Marked as ${helpful ? 'helpful' : 'not helpful'}`,
       });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 
-  // Add reply to review
   addReply: async (req, res, next) => {
-    try {
-      const { comment } = req.body;
-      const review = new (require('../models/ReviewModel'))(pool);
-
-      const replyId = await review.addReply(req.params.reviewId, req.user.id, comment);
-
-      res.status(201).json({
-        status: 'success',
-        data: {
-          replyId,
-        },
-      });
-    } catch (err) {
-      next(err);
-    }
+    // You would typically need a separate model for replies
+    return next(new AppError('Replying to reviews is not implemented yet', 501));
   },
 
-  // Get review replies
   getReplies: async (req, res, next) => {
-    try {
-      const review = new (require('../models/ReviewModel'))(pool);
-      const replies = await review.getReplies(req.params.reviewId);
-
-      res.status(200).json({
-        status: 'success',
-        results: replies.length,
-        data: {
-          replies,
-        },
-      });
-    } catch (err) {
-      next(err);
-    }
+    return next(new AppError('Fetching replies is not implemented yet', 501));
   },
 
-  // Delete review
   deleteReview: async (req, res, next) => {
     try {
-      const review = new (require('../models/ReviewModel'))(pool);
-      const deletedRows = await review.delete(req.params.reviewId);
-
-      if (deletedRows === 0) {
+      const deleted = await ProductReview.destroy({ where: { id: req.params.reviewId } });
+      if (deleted === 0) {
         return next(new AppError('No review found with that ID', 404));
       }
 
-      res.status(204).json({
-        status: 'success',
-        data: null,
-      });
+      res.status(204).json({ status: 'success', data: null });
     } catch (err) {
-      next(err);
+      next(new AppError(err.message, 500));
     }
   },
 };

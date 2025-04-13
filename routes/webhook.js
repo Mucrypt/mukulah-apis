@@ -3,13 +3,13 @@ const express = require('express');
 const router = express.Router();
 const stripe = require('../config/stripe');
 const bodyParser = require('body-parser');
-const Checkout = require('../models/CheckoutModel');
+const Checkout = require('../models/entities/Checkout');
 const { sendOrderConfirmation } = require('../services/emailService');
 
 router.post('/stripe', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
-
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
@@ -22,24 +22,42 @@ router.post('/stripe', bodyParser.raw({ type: 'application/json' }), async (req,
     const session = event.data.object;
     const checkoutId = session.metadata.checkoutId;
 
-    // Mark as paid in DB
-    await Checkout.markAsPaid(checkoutId, {
-      payment_status: 'paid',
-      payment_details: session.payment_intent,
-      paid_at: new Date(),
-    });
+    await Checkout.update(
+      {
+        is_paid: true,
+        paid_at: new Date(),
+        payment_status: 'paid',
+        payment_details: session,
+      },
+      { where: { id: checkoutId } }
+    );
 
-    // Send email confirmation (next step 👇)
-    const checkout = await Checkout.findById(checkoutId);
+    const checkout = await Checkout.findByPk(checkoutId);
     if (checkout) {
-      const orderData = {
-        id: checkout._id,
-        items: checkout.items,
-        total: checkout.total,
-      };
-      await sendOrderConfirmation(checkout.email, orderData);
+      await sendOrderConfirmation(checkout.email, {
+        id: checkout.id,
+        total: checkout.total_price,
+      });
+    }
+  }
+
+  // Handle refund
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object;
+    const checkoutId = charge.metadata?.checkoutId;
+
+    if (checkoutId) {
+      await Checkout.update(
+        {
+          payment_status: 'refunded',
+          payment_details: charge,
+        },
+        { where: { id: checkoutId } }
+      );
+
+      console.log(`✅ Checkout ${checkoutId} marked as refunded.`);
     } else {
-      console.error('Checkout not found:', checkoutId);
+      console.warn('⚠️ Missing checkoutId in charge.metadata');
     }
   }
 

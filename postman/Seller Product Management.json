@@ -1,0 +1,298 @@
+{
+  "info": {
+    "_postman_id": "29e7091d-0fec-4db1-94b0-0d97c17c1724",
+    "name": "🛍️ Seller Product Management API",
+    "description": "🚀 Complete product management suite for sellers including CRUD operations, bulk upload, duplication, status management, and analytics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "📦 Product Management",
+      "item": [
+        {
+          "name": "📝 POST /products - Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Wireless Headphones\",\n  \"description\": \"Noise cancelling wireless headphones\",\n  \"price\": 199.99,\n  \"sku\": \"HEADPH-001\",\n  \"stock_quantity\": 50,\n  \"category_id\": 5,\n  \"status\": \"draft\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products"]
+            }
+          }
+        },
+        {
+          "name": "📋 GET /products - Get My Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔍 GET /products/:id - Get Product Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "🔄 PUT /products/:id - Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Premium Headphones\",\n  \"price\": 219.99,\n  \"stock_quantity\": 45,\n  \"description\": \"Updated noise cancelling wireless headphones with better battery\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "🗑️ DELETE /products/:id - Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "📤 POST /products/bulk - Bulk Upload Products",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/products.csv"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "bulk"]
+            }
+          }
+        },
+        {
+          "name": "📄 Sample CSV Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "name,description,price,sku,stock_quantity,status\n\"Product 1\",\"Description 1\",19.99,\"SKU-001\",50,\"draft\"\n\"Product 2\",\"Description 2\",29.99,\"SKU-002\",100,\"published\"\n\"Product 3\",\"Description 3\",39.99,\"SKU-003\",75,\"draft\"",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "",
+              "host": [""],
+              "path": [""]
+            },
+            "description": "Sample CSV content for bulk upload"
+          }
+        },
+        {
+          "name": "⎘ POST /products/:id/duplicate - Duplicate Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}/duplicate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}", "duplicate"]
+            }
+          }
+        },
+        {
+          "name": "🔄 PATCH /products/:id/status - Update Product Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "⚠️ GET /products/low-stock - Get Low Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/low-stock?threshold=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "low-stock"],
+              "query": [
+                {
+                  "key": "threshold",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "📊 GET /products/:id/analytics - Get Product Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}", "analytics"]
+            }
+          }
+        },
+        {
+          "name": "📥 GET /products/export - Export Products as CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "export"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "sellerToken",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": "1"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sellerToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

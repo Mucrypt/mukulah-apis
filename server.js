@@ -22,11 +22,21 @@ const productRelationshipRoutes = require('./routes/ProductRelationshipRoutes');
 const cartRoutes = require('./routes/CartRoutes');
 const orderRoutes = require('./routes/OrderRoutes');
 const checkoutRoutes = require('./routes/CheckoutRoutes');
-const sellersRoutes = require('./routes/sellersRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 
+const fs = require('fs');
+const path = require('path');
 
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('✅ Created public/uploads directory');
+}
+
+
+const { defineAssociations } = require('./models/associations');
+defineAssociations();
 
 // cookie parser is used to parse cookies in the request headers
 const cookieParser = require('cookie-parser');
@@ -63,9 +73,9 @@ app.use(compression());
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-
 // Serve static files from the public directory
-app.use('/api/admin-dashboard', require('./routes/adminDashboard'));
+app.use('/api/admin-dashboard', require('./routes/admin/adminDashboard'));
+app.use('/api/seller/auth', require('./routes/sellersRoutes/sellerAuthRoutes'));
 
 // Request logging
 if (process.env.NODE_ENV === 'development') {
@@ -92,7 +102,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/product-images', productImageRoutes);
+app.use('/api/images', productImageRoutes);
 app.use('/api/product-variations', productVariationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/tags', tagRoutes);
@@ -100,8 +110,18 @@ app.use('/api/product-relationships', productRelationshipRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/checkouts', checkoutRoutes);
+// ✅ FIXED - no double `/api`
+app.use('/seller/auth', require('./routes/sellersRoutes/sellerAuthRoutes'));
+app.use('/api/seller/products', require('./routes/sellersRoutes/sellerProductRoutes'));
+// Seller Earnings & Payouts
+app.use('/api/seller', require('./routes/sellersRoutes/sellerEarningsRoutes'));
 
-app.use('/api/sellers', sellersRoutes);
+app.use('/api/seller/inventory', require('./routes/sellersRoutes/sellerInventoryRoutes'));
+app.use('/api/seller/orders', require('./routes/sellersRoutes/sellerOrderRoutes'));
+app.use('/api/seller', require('./routes/sellersRoutes/sellerReturnRoutes'));
+
+app.use('/api/admin/payouts', require('./routes/admin/adminPayoutRoutes'));
+app.use('/api/admin/seller-products', require('./routes/admin/productApprovalRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

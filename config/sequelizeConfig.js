@@ -1,35 +1,29 @@
-// backend/config/config.js
+// config/sequelizeConfig.js
+require('dotenv').config();
 const { mysql } = require('./envConfig');
 
 module.exports = {
   development: {
     username: mysql.user,
     password: mysql.password,
-    database: mysql.database,
+    database: 'ecommerce_db', // ✅ Your actual DB name
     host: mysql.host,
-    port: mysql.port,
-    dialect: 'mysql',
-    dialectOptions: {
-      bigNumberStrings: true,
-      supportBigNumbers: true,
-    },
-    pool: {
-      max: 20,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    define: {
-      underscored: true,
-      freezeTableName: true,
-      charset: 'utf8mb4',
-      collate: 'utf8mb4_unicode_ci',
-    },
+    port: mysql.port || 3306,
+    dialect: 'mysql', // ✅ Required for Sequelize CLI
   },
   test: {
-    // ... similar to development
+    username: 'root',
+    password: null,
+    database: 'test_db',
+    host: '127.0.0.1',
+    dialect: 'mysql',
   },
   production: {
-    // ... similar to development
+    username: mysql.user,
+    password: mysql.password,
+    database: 'ecommerce_db',
+    host: mysql.host,
+    port: mysql.port || 3306,
+    dialect: 'mysql',
   },
 };

@@ -63,9 +63,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/register",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "users", "register"]
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "register"]
             }
           },
           "response": []
@@ -92,9 +91,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/login",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "users", "login"]
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
             }
           },
           "response": []
@@ -106,21 +104,14 @@
       "description": "Endpoints for managing seller profiles and approvals",
       "item": [
         {
-          "name": "GET /sellers - Get All Sellers (Admin Only)",
+          "name": "GET /sellers - Get All Sellers",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/sellers",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers"]
             }
           },
           "response": []
@@ -129,18 +120,44 @@
           "name": "GET /sellers/:id - Get Seller Profile",
           "request": {
             "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /sellers - Create Seller Profile",
+          "request": {
+            "method": "POST",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{sellerToken}}",
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"My Business\",\n  \"business_phone\": \"+1234567890\",\n  \"business_address\": \"123 Business Street\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{baseUrl}}/sellers/{{sellerId}}",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}"]
+              "raw": "{{baseUrl}}/sellers",
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers"]
             }
           },
           "response": []
@@ -172,9 +189,27 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /sellers/:id - Delete Seller Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}"]
             }
           },
           "response": []
@@ -206,9 +241,74 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/approve",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "approve"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "approve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /sellers/:id/suspend - Admin Suspend Seller",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/suspend",
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "suspend"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /sellers/:id/reject - Admin Reject Seller",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sellers/{{sellerId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "reject"]
             }
           },
           "response": []
@@ -217,7 +317,7 @@
     },
     {
       "name": "🛍️ Seller Product Management",
-      "description": "Endpoints for managing seller products and approvals",
+      "description": "Endpoints for managing seller products",
       "item": [
         {
           "name": "GET /sellers/:id/products - Get Seller's Products",
@@ -232,9 +332,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/products",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "products"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "products"]
             }
           },
           "response": []
@@ -266,9 +365,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/products",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "products"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "products"]
             }
           },
           "response": []
@@ -300,9 +398,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/products/{{productId}}",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "products", "{{productId}}"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "products", "{{productId}}"]
             }
           },
           "response": []
@@ -320,43 +417,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/products/{{productId}}",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "products", "{{productId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PATCH /products/:id/approve - Admin Approve Seller's Product",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"published\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}/approve",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "products", "{{productId}}", "approve"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "products", "{{productId}}"]
             }
           },
           "response": []
@@ -380,9 +442,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/dashboard",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "dashboard"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "dashboard"]
             }
           },
           "response": []
@@ -400,9 +461,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/sales-report?startDate=2023-01-01&endDate=2023-12-31",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "sales-report"],
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "sales-report"],
               "query": [
                 {
                   "key": "startDate",
@@ -436,9 +496,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/orders",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "orders"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "orders"]
             }
           },
           "response": []
@@ -470,9 +529,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sellers/{{sellerId}}/orders/{{orderId}}",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "sellers", "{{sellerId}}", "orders", "{{orderId}}"]
+              "host": ["{{baseUrl}}"],
+              "path": ["sellers", "{{sellerId}}", "orders", "{{orderId}}"]
             }
           },
           "response": []

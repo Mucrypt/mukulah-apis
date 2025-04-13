@@ -1,4 +1,5 @@
-// backend/models/Seller.js
+// backend/models/entities/Seller.js
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/db');
 
@@ -10,15 +11,25 @@ const Seller = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    user_id: {
-      type: DataTypes.BIGINT.UNSIGNED,
+    name: {
+      type: DataTypes.STRING(255),
       allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
       },
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE',
+    },
+    password: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: 'seller',
     },
     business_name: {
       type: DataTypes.STRING(255),
@@ -125,6 +136,14 @@ const Seller = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    verification_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    email_verified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: 'sellers',
@@ -141,6 +160,11 @@ const Seller = sequelize.define(
         name: 'sellers_business_email',
         unique: true,
         fields: ['business_email'],
+      },
+      {
+        name: 'sellers_email',
+        unique: true,
+        fields: ['email'],
       },
     ],
   }

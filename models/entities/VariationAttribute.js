@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/db');
 
+// VariationAttribute.js
 const VariationAttribute = sequelize.define(
   'VariationAttribute',
   {
@@ -37,5 +38,8 @@ const VariationAttribute = sequelize.define(
     ],
   }
 );
+
+// Associations
+sequelize.models.VariationAttribute = VariationAttribute;
 
 module.exports = VariationAttribute;

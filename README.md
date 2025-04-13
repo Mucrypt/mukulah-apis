@@ -737,3 +737,98 @@ This project is licensed under the MIT License.
 ````
 
 This `README.md` file provides clear instructions for setting up the project, testing routes, and debugging issues. Let me know if you need further assistance!
+
+
+
+#Sellers remaining routes
+
+
+🔐 Authentication & Security
+POST /seller/2fa/setup — Setup Two-Factor Authentication (2FA)
+
+POST /seller/2fa/verify — Verify 2FA code
+
+GET /seller/activity-logs — View login/device history and activity logs
+
+POST /seller/change-password — Change password
+
+POST /seller/deactivate-account — Request account deactivation
+
+POST /seller/contact-support — Seller support ticket system
+
+🛍️ Product Management
+POST /seller/products/bulk-upload — Upload products via CSV or Excel
+
+POST /seller/products/duplicate/:id — Duplicate a product (for quick variations)
+
+PATCH /seller/products/:id/status — Change product status (draft, published, archived)
+
+GET /seller/products/low-stock — View low inventory products
+
+GET /seller/products/analytics/:id — Product performance (views, wishlist, sales)
+
+GET /seller/products/export — Export products as CSV
+
+📦 Inventory & Stock
+PATCH /seller/products/:id/adjust-stock — Adjust stock quantity manually
+
+GET /seller/inventory/overview — Overview of stock levels, reorder alerts
+
+GET /seller/inventory/history — Stock adjustment history (manual, sales, returns)
+
+💸 Sales & Order Management
+GET /seller/orders — All orders for seller’s products
+
+GET /seller/orders/:id — Order details
+
+PATCH /seller/orders/:id/status — Update order status (pending, shipped, delivered, etc.)
+
+POST /seller/orders/:id/refund — Initiate a refund request
+
+GET /seller/sales/report — Daily/weekly/monthly sales report
+
+GET /seller/transactions — Payment transactions, Stripe/PayPal history
+
+💬 Customer Interaction
+GET /seller/reviews — View reviews on seller products
+
+PATCH /seller/reviews/:id/respond — Reply to a review
+
+GET /seller/messages — Messaging inbox from buyers
+
+POST /seller/messages/:buyerId — Send message to buyer
+
+📊 Analytics & Insights
+GET /seller/dashboard/stats — Custom dashboard metrics (sales, visits, trends)
+
+GET /seller/products/top-selling — Top performing products
+
+GET /seller/products/abandoned-carts — Track abandoned cart products
+
+🧾 Marketing & Campaigns
+POST /seller/promotions/create — Create discounts and coupons
+
+GET /seller/promotions — View active/inactive promotions
+
+POST /seller/featured-request — Request to feature a product
+
+GET /seller/seo-suggestions/:productId — SEO recommendations for product listings
+
+🧑‍💼 Team Management (Multi-Vendor Admin Panel)
+POST /seller/team-members — Invite team members (with roles: manager, staff, etc.)
+
+GET /seller/team-members — View/manage team
+
+PATCH /seller/team-members/:id/permissions — Assign permissions
+
+🏪 Store Settings
+GET /seller/store-settings — View store info
+
+PATCH /seller/store-settings — Update store branding, banners, store hours
+
+POST /seller/store/verify-documents — Upload verification documents (KYC)
+
+📥 Notifications
+GET /seller/notifications — Notification feed (orders, messages, reviews)
+
+PATCH /seller/notifications/:id/read — Mark notification as read

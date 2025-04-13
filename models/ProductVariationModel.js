@@ -1,4 +1,9 @@
-class ProductVariation {
+const { Pool } = require('../config/db'); // 
+// backend/models/ProductVariationModel.js
+const { sequelize } = require('../config/db');
+const ProductVariation = require('./entities/ProductVariation');
+const VariationAttribute = require('./entities/VariationAttribute');
+class ProductVariationMode {
   constructor(pool) {
     this.pool = pool;
     this.attributeModel = new (require('./AttributeModel'))(pool);
@@ -49,8 +54,8 @@ class ProductVariation {
 
         await this.pool.execute(
           `INSERT INTO variation_attributes 
-           (variation_id, attribute_id, value_id, attribute_value_id) 
-           VALUES (?, ?, ?, ?)`,
+   (product_variation_id, attribute_id, value_id, attribute_value_id) 
+   VALUES (?, ?, ?, ?)`,
           [variationId, attributeId, attributeValue.id, attributeValue.id]
         );
       }

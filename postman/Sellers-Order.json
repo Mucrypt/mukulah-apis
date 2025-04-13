@@ -1,0 +1,248 @@
+{
+  "info": {
+    "_postman_id": "29e7091d-0fec-4db1-94b0-0d97c17c1725",
+    "name": "📦 Seller Order Management API",
+    "description": "🚀 Complete order management suite for sellers including order tracking, status updates, refunds, and sales analytics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "📦 Order Management",
+      "item": [
+        {
+          "name": "📋 GET /orders - Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders"]
+            }
+          }
+        },
+        {
+          "name": "🔍 GET /orders/:id - Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "🔄 PATCH /orders/:id/status - Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "💸 POST /orders/:id/refund - Initiate Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/{{orderId}}/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "{{orderId}}", "refund"]
+            }
+          }
+        },
+        {
+          "name": "📊 GET /sales/report - Get Sales Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/sales/report?period=monthly&start=2024-01-01&end=2024-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "sales", "report"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly"
+                },
+                {
+                  "key": "start",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "end",
+                  "value": "2024-04-30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "📥 GET /sales/report/export - Export Sales Report (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/sales/report?exportType=csv&period=monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "sales", "report"],
+              "query": [
+                {
+                  "key": "exportType",
+                  "value": "csv"
+                },
+                {
+                  "key": "period",
+                  "value": "monthly"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "💰 GET /transactions - Get Transaction History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/transactions?status=paid&method=stripe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "transactions"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "paid"
+                },
+                {
+                  "key": "method",
+                  "value": "stripe"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "📥 GET /transactions/export - Export Transactions (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/transactions?exportType=csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "transactions"],
+              "query": [
+                {
+                  "key": "exportType",
+                  "value": "csv"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "❌ POST /orders/:id/cancel - Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Product out of stock\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/{{orderId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "{{orderId}}", "cancel"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "sellerToken",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sellerToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -29,4 +29,6 @@ const ProductAttribute = sequelize.define(
   }
 );
 
+sequelize.models.ProductAttribute = ProductAttribute;
+
 module.exports = ProductAttribute;

@@ -10,7 +10,7 @@ const sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.passw
   host: dbConfig.host,
   dialect: 'mysql',
   port: dbConfig.port,
-  logging: false,
+  logging: console.log ,
   pool: {
     max: 20,
     min: 0,

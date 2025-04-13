@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "29e7091d-0fec-4db1-94b0-0d97c17c1726",
+    "name": "📊 Seller Business Management API",
+    "description": "💰 Complete business management suite for sellers including earnings, inventory, and returns management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "💰 Earnings Management",
+      "item": [
+        {
+          "name": "📈 GET /earnings - Get Earnings Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/earnings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "earnings"]
+            }
+          }
+        },
+        {
+          "name": "💳 GET /payouts - Get All Payouts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/payouts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "payouts"]
+            }
+          }
+        },
+        {
+          "name": "🔍 GET /payouts/:id - Get Payout Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/payouts/{{payoutId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "payouts", "{{payoutId}}"]
+            }
+          }
+        },
+        {
+          "name": "🔄 GET /payouts/sync - Sync Payouts with Stripe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/payouts/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "payouts", "sync"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Inventory Management",
+      "item": [
+        {
+          "name": "🔄 PATCH /products/:id/adjust-stock - Adjust Stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/products/{{productId}}/adjust-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "products", "{{productId}}", "adjust-stock"]
+            }
+          }
+        },
+        {
+          "name": "📊 GET /inventory/overview - Get Inventory Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/inventory/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "inventory", "overview"]
+            }
+          }
+        },
+        {
+          "name": "📜 GET /inventory/history - Get Stock Adjustment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/inventory/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "inventory", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Returns Management",
+      "item": [
+        {
+          "name": "📝 POST /orders/:id/return - Request Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed mind\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/{{orderId}}/return",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "{{orderId}}", "return"]
+            }
+          }
+        },
+        {
+          "name": "📋 GET /orders/returns - Get All Return Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/returns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "returns"]
+            }
+          }
+        },
+        {
+          "name": "✅ PATCH /orders/returns/:id/approve - Handle Return Approval",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seller/orders/returns/{{returnId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seller", "orders", "returns", "{{returnId}}", "approve"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "sellerToken",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": "1"
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    },
+    {
+      "key": "returnId",
+      "value": "1"
+    },
+    {
+      "key": "payoutId",
+      "value": "1"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sellerToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

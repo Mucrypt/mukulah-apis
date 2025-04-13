@@ -1,7 +1,6 @@
-
 //backend/routes/adminDashboard.js
 const express = require('express');
-const { Product, Seller } = require('../models/associations');
+const { Product, Seller } = require('../../models/associations');
 const router = express.Router();
 
 router.get('/overview', async (req, res) => {

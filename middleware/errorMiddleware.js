@@ -1,15 +1,31 @@
-const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+// middleware/errorMiddleware.js
+const { AppError } = require('../utils/appError');
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+module.exports = (err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
 
-  res.status(statusCode).json({
-    status: 'error',
-    statusCode,
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
+  if (process.env.NODE_ENV === 'development') {
+    res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+      stack: err.stack,
+      error: err,
+    });
+  } else {
+    // Operational, trusted error: send message to client
+    if (err.isOperational) {
+      res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      });
+    } else {
+      // Programming or other unknown error
+      console.error('ERROR 💥', err);
+      res.status(500).json({
+        status: 'error',
+        message: 'Something went very wrong!',
+      });
+    }
+  }
 };
-
-module.exports = errorHandler;
