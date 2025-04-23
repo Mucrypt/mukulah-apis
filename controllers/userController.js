@@ -65,27 +65,61 @@ const userController = {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res
-          .status(400)
-          .json({ status: 'fail', message: 'Please provide email and password' });
+        return res.status(400).json({
+          status: 'fail',
+          message: 'Please provide email and password',
+        });
       }
 
       const user = await User.findOne({ where: { email, active: true } });
       if (!user) {
-        return res.status(401).json({ status: 'fail', message: 'Incorrect email or password' });
+        return res.status(401).json({
+          status: 'fail',
+          message: 'Incorrect email or password',
+        });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(401).json({ status: 'fail', message: 'Incorrect email or password' });
+        return res.status(401).json({
+          status: 'fail',
+          message: 'Incorrect email or password',
+        });
       }
 
-      createSendToken(user, 200, res);
+      // Include guestId in the response if it exists in cookies
+      const responseData = {
+        status: 'success',
+        token: signToken(user),
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            
+            
+            // Include other user fields as needed
+
+          },
+        },
+        guestId: req.cookies?.guestId || null,
+      };
+
+      // Set cookie with token
+      res.cookie('jwt', responseData.token, {
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+      });
+
+      res.status(200).json(responseData);
     } catch (err) {
       console.error('[LOGIN ERROR]', err);
-      res
-        .status(500)
-        .json({ status: 'error', message: err.message || 'Internal server error during login' });
+      res.status(500).json({
+        status: 'error',
+        message: err.message || 'Internal server error during login',
+      });
     }
   },
 
@@ -223,20 +257,18 @@ const userController = {
     }
   },
 
- updateUser: async (req, res) => {
-  try {
-    if (req.body.password) {
-      req.body.password = await bcrypt.hash(req.body.password, 12);
+  updateUser: async (req, res) => {
+    try {
+      if (req.body.password) {
+        req.body.password = await bcrypt.hash(req.body.password, 12);
+      }
+      await User.update(req.body, { where: { id: req.params.id, active: true } });
+      const user = await User.findByPk(req.params.id);
+      res.status(200).json({ status: 'success', data: { user } });
+    } catch (err) {
+      res.status(500).json({ status: 'error', message: 'Something went wrong' });
     }
-    await User.update(req.body, { where: { id: req.params.id, active: true } });
-    const user = await User.findByPk(req.params.id);
-    res.status(200).json({ status: 'success', data: { user } });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'Something went wrong' });
-  }
-}
-,
-
+  },
   deleteUser: async (req, res) => {
     try {
       await User.update({ active: false }, { where: { id: req.params.id } });

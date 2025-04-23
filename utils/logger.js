@@ -1,10 +1,14 @@
 const winston = require('winston');
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: 'warn',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.printf(({ timestamp, level, message }) => {
+      // Ignore logs for specific routes
+      if (message.includes('/api/categories')) {
+        return ''; // Skip logging these messages
+      }
       return `${timestamp} [${level.toUpperCase()}]: ${message}`;
     })
   ),
@@ -14,5 +18,4 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'logs/combined.log' }),
   ],
 });
-
 module.exports = logger;

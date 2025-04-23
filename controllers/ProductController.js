@@ -56,32 +56,88 @@ const productController = {
   },
 
   // Get all products
+  // Get all products
+  // Get all products
   getAllProducts: async (req, res, next) => {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const limit = parseInt(req.query.limit) || 12;
       const offset = (page - 1) * limit;
 
+      const whereConditions = {};
+      let order = [['created_at', 'DESC']];
+
+      // Handle sorting
+      if (req.query.sort) {
+        const [field, direction] = req.query.sort.split(':');
+        if (field && direction) {
+          order = [[field, direction.toUpperCase()]];
+        }
+      }
+
+      // Handle categoryId
+      if (req.query.categoryId) {
+        whereConditions.categoryId = req.query.categoryId;
+      }
+
+      // Handle price range
+      if (req.query.minPrice || req.query.maxPrice) {
+        whereConditions.price = {
+          ...(req.query.minPrice && { [Op.gte]: parseFloat(req.query.minPrice) }),
+          ...(req.query.maxPrice && { [Op.lte]: parseFloat(req.query.maxPrice) }),
+        };
+      }
+
+      // Handle filters
+      if (req.query.filters) {
+        const filters = JSON.parse(req.query.filters);
+        Object.keys(filters).forEach((key) => {
+          whereConditions[key] = { [Op.in]: filters[key] };
+        });
+      }
+
       const { count, rows: products } = await Product.findAndCountAll({
+        where: whereConditions,
         offset,
         limit,
-        order: [['created_at', 'DESC']],
+        order,
+        include: [
+          {
+            association: 'productImages', // Changed from 'images' to match your model
+            attributes: ['url', 'alt_text', 'is_primary'],
+            where: { is_primary: true },
+            required: false,
+          },
+        ],
       });
 
+      // Transform products to match frontend expectations
+      const transformedProducts = products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        discount_price: product.discount_price,
+        average_rating: product.average_rating || 0,
+        review_count: product.review_count || 0,
+        image_url: product.productImages?.[0]?.url || '/default-product-image.jpg',
+        is_featured: product.is_featured || false,
+        is_bestseller: product.is_bestseller || false,
+        is_new: product.is_new || false,
+        stock_status: product.stock_status || 'in_stock',
+      }));
+
       res.status(200).json({
-        status: 'success',
-        results: products.length,
-        total: count,
+        products: transformedProducts,
         page,
         pages: Math.ceil(count / limit),
-        data: { products },
+        total: count,
       });
     } catch (err) {
       console.error('Error getting products:', err);
       next(new AppError('Failed to retrieve products', 500));
     }
   },
-
   // Get a single product
   // Get a single product
   getProduct: async (req, res, next) => {
@@ -92,9 +148,10 @@ const productController = {
 
       const include = [];
 
-      if (withImages === 'true') {
-        include.push({ association: 'images' });
-      }
+    if (withImages === 'true') {
+      include.push({ association: 'productImages' }); // ✅ this matches associations.js
+    }
+
 
       if (withBrand === 'true') {
         include.push({ association: 'brand' });
@@ -400,125 +457,123 @@ const productController = {
   },
 
   // Get related products
- // Get related products (based on shared categories)
-getRelatedProducts: async (req, res, next) => {
-  try {
-    const productId = parseInt(req.params.id, 10);
-    const limit = parseInt(req.query.limit) || 5;
+  // Get related products (based on shared categories)
+  getRelatedProducts: async (req, res, next) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const limit = parseInt(req.query.limit) || 5;
 
-    // Get related product IDs
-    const relatedProductRows = await RelatedProduct.findAll({
-      where: { product_id: productId },
-      attributes: ['related_product_id'],
-      limit,
-    });
-
-    if (!relatedProductRows.length) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'No related products found',
+      // Get related product IDs
+      const relatedProductRows = await RelatedProduct.findAll({
+        where: { product_id: productId },
+        attributes: ['related_product_id'],
+        limit,
       });
+
+      if (!relatedProductRows.length) {
+        return res.status(404).json({
+          status: 'fail',
+          message: 'No related products found',
+        });
+      }
+
+      const relatedProductIds = relatedProductRows.map((row) => row.related_product_id);
+
+      // Fetch related product details with images
+      const relatedProducts = await Product.findAll({
+        where: { id: relatedProductIds },
+        include: [
+          {
+            association: 'images',
+            attributes: ['url', 'alt_text', 'is_primary'],
+          },
+        ],
+      });
+
+      res.status(200).json({
+        status: 'success',
+        results: relatedProducts.length,
+        data: { products: relatedProducts },
+      });
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+      next(new AppError('Failed to fetch related products', 500));
     }
-
-    const relatedProductIds = relatedProductRows.map((row) => row.related_product_id);
-
-    // Fetch related product details with images
-    const relatedProducts = await Product.findAll({
-      where: { id: relatedProductIds },
-      include: [
-        {
-          association: 'images',
-          attributes: ['url', 'alt_text', 'is_primary'],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      status: 'success',
-      results: relatedProducts.length,
-      data: { products: relatedProducts },
-    });
-  } catch (error) {
-    console.error('Error fetching related products:', error);
-    next(new AppError('Failed to fetch related products', 500));
-  }
-},
-
-
+  },
 
   // Get cross-sell products
- getCrossSellProducts: async (req, res, next) => {
-  try {
-    const productId = parseInt(req.params.id, 10);
-    const limit = parseInt(req.query.limit) || 5;
+  getCrossSellProducts: async (req, res, next) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const limit = parseInt(req.query.limit) || 5;
 
-    if (isNaN(productId)) return next(new AppError('Invalid product ID', 400));
-    if (isNaN(limit) || limit <= 0) return next(new AppError('Invalid limit', 400));
+      if (isNaN(productId)) return next(new AppError('Invalid product ID', 400));
+      if (isNaN(limit) || limit <= 0) return next(new AppError('Invalid limit', 400));
 
-    const crossSells = await CrossSellProduct.findAll({
-      where: { product_id: productId },
-      attributes: ['cross_sell_product_id'],
-      limit,
-    });
+      const crossSells = await CrossSellProduct.findAll({
+        where: { product_id: productId },
+        attributes: ['cross_sell_product_id'],
+        limit,
+      });
 
-    const crossSellIds = crossSells.map(item => item.cross_sell_product_id);
+      const crossSellIds = crossSells.map((item) => item.cross_sell_product_id);
 
-    const products = await Product.findAll({
-      where: { id: crossSellIds },
-      include: [
-        {
-          association: 'images',
-          attributes: ['url', 'alt_text', 'is_primary'],
-        },
-      ],
-    });
+      const products = await Product.findAll({
+        where: { id: crossSellIds },
+        include: [
+          {
+            association: 'images',
+            attributes: ['url', 'alt_text', 'is_primary'],
+          },
+        ],
+      });
 
-    res.status(200).json({
-      status: 'success',
-      results: products.length,
-      data: { products },
-    });
-  } catch (err) {
-    console.error('Error getting cross-sell products:', err);
-    next(new AppError('Failed to get cross-sell products', 500));
-  }
-},
+      res.status(200).json({
+        status: 'success',
+        results: products.length,
+        data: { products },
+      });
+    } catch (err) {
+      console.error('Error getting cross-sell products:', err);
+      next(new AppError('Failed to get cross-sell products', 500));
+    }
+  },
   // Get up-sell products
- getUpSellProducts: async (req, res, next) => {
-  try {
-    const productId = parseInt(req.params.id, 10);
-    const limit = parseInt(req.query.limit) || 5;
+  getUpSellProducts: async (req, res, next) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const limit = parseInt(req.query.limit) || 5;
 
-    if (isNaN(productId)) return next(new AppError('Invalid product ID', 400));
-    if (isNaN(limit) || limit <= 0) return next(new AppError('Invalid limit', 400));
+      if (isNaN(productId)) return next(new AppError('Invalid product ID', 400));
+      if (isNaN(limit) || limit <= 0) return next(new AppError('Invalid limit', 400));
 
-    const upSells = await UpSellProduct.findAll({
-      where: { product_id: productId },
-      attributes: ['up_sell_product_id'],
-      limit,
-    });
+      const upSells = await UpSellProduct.findAll({
+        where: { product_id: productId },
+        attributes: ['up_sell_product_id'],
+        limit,
+      });
 
-    const upSellIds = upSells.map(item => item.up_sell_product_id);
+      const upSellIds = upSells.map((item) => item.up_sell_product_id);
 
-    const products = await Product.findAll({
-      where: { id: upSellIds },
-      include: [
-        {
-          association: 'images',
-          attributes: ['url', 'alt_text', 'is_primary'],
-        },
-      ],
-    });
+      const products = await Product.findAll({
+        where: { id: upSellIds },
+        include: [
+          {
+            association: 'images',
+            attributes: ['url', 'alt_text', 'is_primary'],
+          },
+        ],
+      });
 
-    res.status(200).json({
-      status: 'success',
-      results: products.length,
-      data: { products },
-    });
-  } catch (err) {
-    console.error('Error getting up-sell products:', err);
-    next(new AppError('Failed to get up-sell products', 500));
-  }
-},
+      res.status(200).json({
+        status: 'success',
+        results: products.length,
+        data: { products },
+      });
+    } catch (err) {
+      console.error('Error getting up-sell products:', err);
+      next(new AppError('Failed to get up-sell products', 500));
+    }
+  },
 };
 module.exports = productController;

@@ -32,6 +32,7 @@
   "author": "Your Name <your.email@example.com>",
   "license": "MIT",
   "dependencies": {
+    "@tanstack/react-query": "^5.74.4",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.6.0",

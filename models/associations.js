@@ -25,41 +25,70 @@ const Payout = require('./entities/Payout');
 const SellerProduct = require('./entities/SellerProduct');
 
 const defineAssociations = () => {
-  // Product ↔ Category
-  Product.belongsToMany(Category, {
-    through: ProductCategory,
-    foreignKey: 'product_id',
-    as: 'categories',
+  // ===================== CATEGORY SELF-ASSOCIATIONS =====================
+  Category.hasMany(Category, {
+    foreignKey: 'parent_id',
+    as: 'subcategories',
+    onDelete: 'SET NULL',
   });
+
+  Category.belongsTo(Category, {
+    foreignKey: 'parent_id',
+    as: 'parent',
+  });
+
   Category.belongsToMany(Product, {
-    through: ProductCategory,
+    through: 'product_categories', // Name of the join table
     foreignKey: 'category_id',
+    otherKey: 'product_id',
     as: 'products',
   });
 
-  // Product ↔ Collection
+  // ===================== PRODUCT ↔ CATEGORY =====================
+  Product.belongsToMany(Category, {
+    through: 'product_categories',
+    foreignKey: 'product_id',
+    otherKey: 'category_id',
+    as: 'categories',
+    scope: {
+      includeSubcategories: true,
+    },
+  });
+
+  Product.belongsToMany(Category, {
+    through: ProductCategory,
+    foreignKey: 'product_id',
+    as: 'categoriesWithSubcategories', // Unique alias
+    scope: {
+      includeSubcategories: true,
+    },
+  });
+
+  // ===================== PRODUCT ↔ COLLECTION =====================
   Product.belongsToMany(Collection, {
     through: ProductCollection,
     foreignKey: 'product_id',
     as: 'collections',
   });
+
   Collection.belongsToMany(Product, {
     through: ProductCollection,
     foreignKey: 'collection_id',
     as: 'products',
   });
 
-  // Product ↔ Tag
+  // ===================== PRODUCT ↔ TAG =====================
   Product.belongsToMany(Tag, { through: ProductTag, foreignKey: 'product_id', as: 'tags' });
   Tag.belongsToMany(Product, { through: ProductTag, foreignKey: 'tag_id', as: 'products' });
 
-  // Product ↔ Attribute (Product-Level)
+  // ===================== PRODUCT ↔ ATTRIBUTE =====================
   Product.belongsToMany(Attribute, {
     through: ProductAttribute,
     foreignKey: 'product_id',
     otherKey: 'attribute_id',
     as: 'productAttributes',
   });
+
   Attribute.belongsToMany(Product, {
     through: ProductAttribute,
     foreignKey: 'attribute_id',
@@ -67,23 +96,23 @@ const defineAssociations = () => {
     as: 'products',
   });
 
-  // Attribute ➝ AttributeValue
+  // ===================== ATTRIBUTE → ATTRIBUTE VALUE =====================
   Attribute.hasMany(AttributeValue, { foreignKey: 'attribute_id', as: 'values' });
   AttributeValue.belongsTo(Attribute, { foreignKey: 'attribute_id', as: 'attribute' });
 
-  // Product ➝ ProductImage (admin perspective)
+  // ===================== PRODUCT → IMAGE =====================
   Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'productImages' });
   ProductImage.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
-  // Seller ➝ ProductImage (seller perspective)
+  // ===================== SELLER → IMAGE =====================
   Seller.hasMany(ProductImage, { foreignKey: 'seller_id', as: 'sellerImages' });
   ProductImage.belongsTo(Seller, { foreignKey: 'seller_id', as: 'seller' });
 
-  // Product ➝ ProductVariation
+  // ===================== PRODUCT → VARIATION =====================
   Product.hasMany(ProductVariation, { foreignKey: 'product_id', as: 'variations' });
   ProductVariation.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
-  // ProductVariation ➝ ProductImage
+  // ===================== VARIATION → IMAGE =====================
   ProductVariation.belongsTo(ProductImage, {
     foreignKey: 'image_id',
     as: 'image',
@@ -91,20 +120,21 @@ const defineAssociations = () => {
     onUpdate: 'CASCADE',
   });
 
-  // Product ↔ ProductReview
+  // ===================== PRODUCT ↔ REVIEW =====================
   Product.hasMany(ProductReview, { foreignKey: 'product_id', as: 'reviews' });
   ProductReview.belongsTo(Product, { foreignKey: 'product_id' });
 
   ProductReview.belongsTo(User, { foreignKey: 'customer_id', as: 'user' });
   User.hasMany(ProductReview, { foreignKey: 'customer_id', as: 'reviews' });
 
-  // ProductVariation ↔ Attribute
+  // ===================== VARIATION ↔ ATTRIBUTE =====================
   ProductVariation.belongsToMany(Attribute, {
     through: { model: VariationAttribute, unique: false, attributes: [] },
     foreignKey: 'product_variation_id',
     otherKey: 'attribute_id',
     as: 'attributes',
   });
+
   Attribute.belongsToMany(ProductVariation, {
     through: { model: VariationAttribute, unique: false, attributes: [] },
     foreignKey: 'attribute_id',
@@ -112,13 +142,14 @@ const defineAssociations = () => {
     as: 'productVariations',
   });
 
-  // ProductVariation ↔ AttributeValue
+  // ===================== VARIATION ↔ ATTRIBUTE VALUE =====================
   ProductVariation.belongsToMany(AttributeValue, {
     through: { model: VariationAttribute, unique: false, attributes: [] },
     foreignKey: 'product_variation_id',
     otherKey: 'attribute_value_id',
     as: 'attributeValues',
   });
+
   AttributeValue.belongsToMany(ProductVariation, {
     through: { model: VariationAttribute, unique: false, attributes: [] },
     foreignKey: 'attribute_value_id',
@@ -126,17 +157,18 @@ const defineAssociations = () => {
     as: 'productVariations',
   });
 
-  // Brand ↔ Product
+  // ===================== BRAND ↔ PRODUCT =====================
   Product.belongsTo(Brand, { foreignKey: 'brand_id', as: 'brand' });
   Brand.hasMany(Product, { foreignKey: 'brand_id', as: 'products' });
 
-  // Seller ↔ Product via seller_products
+  // ===================== SELLER ↔ PRODUCT (via SellerProduct) =====================
   Seller.belongsToMany(Product, {
     through: SellerProduct,
     foreignKey: 'seller_id',
     otherKey: 'product_id',
     as: 'listedProducts',
   });
+
   Product.belongsToMany(Seller, {
     through: SellerProduct,
     foreignKey: 'product_id',
@@ -144,21 +176,21 @@ const defineAssociations = () => {
     as: 'linkedSellers',
   });
 
-  // Direct FK Seller ➝ Product
+  // ===================== SELLER → PRODUCT (Direct FK) =====================
   Seller.hasMany(Product, { foreignKey: 'seller_id', as: 'products' });
   Product.belongsTo(Seller, { foreignKey: 'seller_id', as: 'seller' });
 
-  // SellerProduct model relations
+  // ===================== SELLER ↔ SELLER PRODUCT =====================
   Seller.hasMany(SellerProduct, { foreignKey: 'seller_id', as: 'sellerProducts' });
   Product.hasMany(SellerProduct, { foreignKey: 'product_id', as: 'sellerProducts' });
   SellerProduct.belongsTo(Seller, { foreignKey: 'seller_id', as: 'seller' });
   SellerProduct.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
-  // Seller ↔ Order
+  // ===================== SELLER ↔ ORDER =====================
   Seller.hasMany(Order, { foreignKey: 'seller_id' });
   Order.belongsTo(Seller, { foreignKey: 'seller_id' });
 
-  // Seller ↔ Payout
+  // ===================== SELLER ↔ PAYOUT =====================
   Seller.hasMany(Payout, { foreignKey: 'seller_id', as: 'payouts' });
   Payout.belongsTo(Seller, { foreignKey: 'seller_id', as: 'seller' });
 };

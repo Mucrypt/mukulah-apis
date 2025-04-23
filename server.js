@@ -132,6 +132,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+
+
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -169,4 +172,11 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
   server.close(() => process.exit(1));
+});
+
+const clientBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(clientBuildPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
